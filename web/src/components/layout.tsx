@@ -33,17 +33,18 @@ export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   ]},
 ];
 
-export function Sidebar({ activeView, onNavigate, collapsed }: {
+export function Sidebar({ activeView, onNavigate, collapsed, open }: {
   activeView: string;
   onNavigate: (view: string) => void;
   collapsed: boolean;
+  open?: boolean;
 }) {
   const { user, logout } = useAuth();
   const [collapsedSections, setCS] = useState<Record<string, boolean>>({});
   const toggleSection = (t: string) => setCS((p) => ({ ...p, [t]: !p[t] }));
 
   return (
-    <aside className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`} role="navigation" aria-label="メインナビゲーション">
+    <aside className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''} ${open ? 'sidebar--open' : ''}`} role="navigation" aria-label="メインナビゲーション">
       <div className="sidebar__logo">
         <div className="sidebar__logo-mark">IT</div>
         {!collapsed && (

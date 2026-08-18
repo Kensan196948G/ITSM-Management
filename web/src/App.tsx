@@ -14,6 +14,8 @@ function Shell() {
   const [activeView, setActiveView] = useState(() => localStorage.getItem('itsm-view') || 'dashboard');
   const [isDark, setIsDark] = useState(() => localStorage.getItem('itsm-dark') === 'true');
   const [collapsed, setCollapsed] = useState(false);
+  // モバイル（<=900px）用: サイドバーの開閉状態
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => { void refresh(); }, [refresh]);
   useEffect(() => {
@@ -37,8 +39,19 @@ function Shell() {
 
   const navigate = (view: string) => {
     setActiveView(view);
+    // モバイルでは項目選択後にサイドバーを閉じる
+    setSidebarOpen(false);
     const main = document.getElementById('itsm-main');
     if (main) main.scrollTop = 0;
+  };
+
+  // モバイルでは開閉、デスクトップでは折りたたみをトグル
+  const toggleSidebar = () => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+      setSidebarOpen((p) => !p);
+    } else {
+      setCollapsed((p) => !p);
+    }
   };
 
   if (loading) {
@@ -78,9 +91,9 @@ function Shell() {
 
   return (
     <div className="app">
-      <Sidebar activeView={activeView} onNavigate={navigate} collapsed={collapsed} />
+      <Sidebar activeView={activeView} onNavigate={navigate} collapsed={collapsed} open={sidebarOpen} />
       <div className={`main ${collapsed ? 'main--expanded' : ''}`}>
-        <Header title={title} isDark={isDark} onToggleDark={() => setIsDark((p) => !p)} collapsed={collapsed} onToggleCollapse={() => setCollapsed((p) => !p)} />
+        <Header title={title} isDark={isDark} onToggleDark={() => setIsDark((p) => !p)} collapsed={collapsed} onToggleCollapse={toggleSidebar} />
         <main id="itsm-main" className="content" role="main">
           {renderView()}
         </main>
