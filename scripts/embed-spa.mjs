@@ -1,5 +1,5 @@
 /** SPAアセットをgzip+base64でsrc/static-server.tsへ埋め込む（ビルドチェーン: build:all で実行） */
-import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
