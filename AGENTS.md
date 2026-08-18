@@ -8,8 +8,8 @@
 |------|------|------|
 | GitHub | ソース・Issue・PR・CI/CD・文書の正本 | `Kensan196948G/ITSM-Management`（private, main） |
 | OpenDesign | 画面構成・UI/UX・デザイン仕様の起点 | `docs/05-画面設計書.md` + 完成版 `index.html` |
-| Cloudflare | Pages（Web配信）/ Workers（API）/ Secrets / 監視 | 未構築（本タスクで構築） |
-| Neon | PostgreSQL / Migration / Seed / 検証Branch DB | `green-mouse-97031557`（itsm-management） |
+| Cloudflare | Workers（SPA配信+API）/ Secrets / 監視 | 構築済み: `itsm-management-api` + `itsm-management.mirai-dx-platform.com`（本番）/ `itsm-management-mvp.mirai-dx-platform.com`（MVP） |
+| Neon | PostgreSQL / Migration / Seed / 検証Branch DB | `green-mouse-97031557`（itsm-management、検証ブランチ `ci-verify` に空DB `itsm_verify`） |
 | DeepSeek Harness | Goal / Workflow / SubAgent / Ralph 統合管理 | 進行中 |
 
 ## 2. 技術スタック（承認済み）
@@ -69,14 +69,14 @@
 
 ## 6. 完了条件（MVP）
 
-- [ ] 主要業務フロー（ログイン → ダッシュボード → インシデントCRUD → SLA監視 → 問題/変更/CMDB等）が操作可能
-- [ ] ダミーデータで正常・空・エラー・権限別状態を確認可能
-- [ ] Neon Migration + Seed を空の検証DBへ再実行可能
-- [ ] typecheck / lint / 主要テスト / E2E / build が成功
-- [ ] レスポンシブ・キーボード操作・アクセシビリティ確認済み
-- [ ] Cloudflare Previewで画面・API・認証・DB接続を確認済み
-- [ ] README・要件・設計・API・DB・テスト・運用手順を更新済み
-- [ ] Critical/High問題が解消され、残存リスクが記録済み
+- [x] 主要業務フロー（ログイン → ダッシュボード → インシデントCRUD → SLA監視 → 問題/変更/CMDB等）が操作可能
+- [x] ダミーデータで正常・空・エラー・権限別状態を確認可能
+- [x] Neon Migration + Seed を空の検証DBへ再実行可能（`itsm_verify` で実証済み）
+- [x] typecheck / lint / 主要テスト / E2E / build が成功
+- [x] レスポンシブ・キーボード操作・アクセシビリティ確認済み
+- [x] Cloudflare Previewで画面・API・認証・DB接続を確認済み（本番 E2E 7件成功）
+- [x] README・要件・設計・API・DB・テスト・運用手順を更新済み
+- [x] Critical/High問題が解消され、残存リスクが記録済み（README・GitHub Issue 参照）
 
 ## 7. 停止条件（即停止して報告）
 
