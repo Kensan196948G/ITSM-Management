@@ -13,3 +13,4 @@ test-results/
 *.log
 .scratch/
 .dev.vars
+.wrangler/
