@@ -1,0 +1,22 @@
+# =====================================================================
+# Cloudflare Workers 設定（ITSM Management / Service Desk API）
+# - ビルド: scripts/build-worker.mjs → worker-build/worker.mjs
+# - デプロイ: scripts/deploy.mjs（Cloudflare REST API 直接）または wrangler deploy
+# - シークレット（DATABASE_URL / SESSION_SECRET）は
+#   Cloudflare Dashboard > Workers > itsm-management-api > Settings > Variables and Secrets で管理
+#   （scripts/deploy.mjs の --secrets オプションでも設定可）
+# =====================================================================
+
+name = "itsm-management-api"
+main = "worker-build/worker.mjs"
+compatibility_date = "2026-08-16"
+
+# workers.dev サブドメイン（https://itsm-management-api.<account-subdomain>.workers.dev）
+workers_dev = true
+
+[vars]
+APP_NAME = "itsm-management"
+ENVIRONMENT = "production"
+
+[observability]
+enabled = true

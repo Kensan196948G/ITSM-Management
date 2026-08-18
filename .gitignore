@@ -1,0 +1,14 @@
+node_modules/
+dist/
+worker-build/
+web/dist/
+.env
+.env.*
+!.env.example
+*.local
+coverage/
+playwright-report/
+test-results/
+.DS_Store
+*.log
+.scratch/
