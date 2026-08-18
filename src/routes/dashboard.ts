@@ -1,8 +1,12 @@
 /** ダッシュボード集計ルーター */
 import { Hono } from 'hono';
 import type { AppEnv } from '../types.ts';
+import { requireRole } from '../middleware.ts';
 
 export const dashboardRoutes = new Hono<AppEnv>();
+
+// 要認証（全ロール）— 未認証アクセスは 401
+dashboardRoutes.use('*', requireRole());
 
 /** ダッシュボードサマリ（KPI） */
 dashboardRoutes.get('/summary', async (c) => {

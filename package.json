@@ -21,7 +21,7 @@
     "test": "node --test \"tests/**/*.test.ts\"",
     "test:unit": "node --test \"tests/unit/**/*.test.ts\"",
     "test:integration": "node --test \"tests/integration/**/*.test.ts\"",
-    "test:e2e": "playwright test",
+    "test:e2e": "playwright test --config web/playwright.config.ts",
     "db:migrate": "node --import tsx scripts/migrate.ts",
     "db:seed": "node --import tsx scripts/seed.ts",
     "deploy": "npm run build:all && node scripts/deploy.mjs",

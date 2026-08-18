@@ -12,3 +12,5 @@ test-results/
 .DS_Store
 *.log
 .scratch/
+.dev.vars
+.wrangler/
