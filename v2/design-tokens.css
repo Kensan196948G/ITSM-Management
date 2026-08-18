@@ -1,0 +1,198 @@
+/* ============================================
+   ITSM-Management v2 — Design Tokens
+   ============================================ */
+
+:root {
+  /* ── Primary ── */
+  --c-primary-50:  #EFF6FF;
+  --c-primary-100: #DBEAFE;
+  --c-primary-200: #BFDBFE;
+  --c-primary-500: #3B82F6;
+  --c-primary-600: #2563EB;
+  --c-primary-700: #1D4ED8;
+
+  /* ── Success ── */
+  --c-success-50:  #ECFDF5;
+  --c-success-100: #D1FAE5;
+  --c-success-600: #059669;
+  --c-success-700: #047857;
+
+  /* ── Warning ── */
+  --c-warn-50:  #FFFBEB;
+  --c-warn-100: #FEF3C7;
+  --c-warn-600: #D97706;
+  --c-warn-700: #B45309;
+
+  /* ── Danger ── */
+  --c-danger-50:  #FEF2F2;
+  --c-danger-100: #FEE2E2;
+  --c-danger-600: #DC2626;
+  --c-danger-700: #B91C1C;
+
+  /* ── Info / Violet ── */
+  --c-info-50:  #F5F3FF;
+  --c-info-100: #EDE9FE;
+  --c-info-600: #7C3AED;
+
+  /* ── Surfaces ── */
+  --c-bg:       #F1F5F9;
+  --c-surface:  #FFFFFF;
+  --c-sidebar:  #FFFFFF;
+  --c-border:   #E2E8F0;
+  --c-border-2: #CBD5E1;
+  --c-hover:    #F8FAFC;
+
+  /* ── Text ── */
+  --c-text:     #0F172A;
+  --c-text-2:   #334155;
+  --c-text-3:   #64748B;
+  --c-text-4:   #94A3B8;
+
+  /* ── Shadows ── */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.06);
+
+  /* ── Radius ── */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --r-full: 9999px;
+
+  /* ── Spacing ── */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px;
+  --sp-4: 16px; --sp-5: 20px; --sp-6: 24px;
+  --sp-8: 32px; --sp-10: 40px; --sp-12: 48px;
+
+  /* ── Typography ── */
+  --font-sans: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+
+  --fs-xs: 12px; --fs-sm: 13px; --fs-base: 14px;
+  --fs-md: 16px; --fs-lg: 18px; --fs-xl: 20px;
+  --fs-2xl: 24px; --fs-3xl: 30px;
+
+  /* ── Transitions ── */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 150ms;
+  --dur-base: 200ms;
+  --dur-slow: 300ms;
+
+  /* ── Layout ── */
+  --sidebar-w: 260px;
+  --header-h: 56px;
+}
+
+/* ── Dark Mode ── */
+[data-theme="dark"] {
+  --c-bg:       #0F172A;
+  --c-surface:  #1E293B;
+  --c-sidebar:  #1E293B;
+  --c-border:   #334155;
+  --c-border-2: #475569;
+  --c-hover:    #273548;
+  --c-text:     #F1F5F9;
+  --c-text-2:   #CBD5E1;
+  --c-text-3:   #94A3B8;
+  --c-text-4:   #64748B;
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.3);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.35);
+  --shadow-xl: 0 20px 25px rgba(0,0,0,0.4);
+}
+
+/* ── Reset & Base ── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { font-size: 14px; -webkit-font-smoothing: antialiased; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--c-bg);
+  color: var(--c-text);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+#root { display: flex; min-height: 100vh; }
+
+a { color: var(--c-primary-600); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--c-border-2); border-radius: var(--r-full); }
+::-webkit-scrollbar-thumb:hover { background: var(--c-text-4); }
+
+/* ── Focus Ring ── */
+:focus-visible {
+  outline: 2px solid var(--c-primary-500);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+/* ── Animations ──
+   Entrance keyframes animate TRANSFORM ONLY (no opacity:0 start state).
+   This guarantees content is never left invisible if the animation clock
+   is frozen/throttled (e.g. background iframe) or reduced-motion is on. */
+@keyframes fadeIn {
+  from { transform: translateY(8px); }
+  to   { transform: translateY(0); }
+}
+@keyframes fadeInScale {
+  from { transform: scale(0.97); }
+  to   { transform: scale(1); }
+}
+@keyframes slideInRight {
+  from { transform: translateX(16px); }
+  to   { transform: translateX(0); }
+}
+@keyframes slideInUp {
+  from { transform: translateY(12px); }
+  to   { transform: translateY(0); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes toastOut {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(100%); }
+}
+
+/* Entrance animations — content is visible by DEFAULT (base opacity:1).
+   The animation only enhances on load; if it never advances (throttled
+   iframe, reduced-motion, etc.) content stays fully visible — never blank. */
+.animate-fade, .animate-scale, .animate-slide-r, .animate-slide-u { opacity: 1; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-fade    { animation: fadeIn var(--dur-slow) var(--ease) backwards; }
+  .animate-scale   { animation: fadeInScale var(--dur-slow) var(--ease) backwards; }
+  .animate-slide-r { animation: slideInRight var(--dur-slow) var(--ease) backwards; }
+  .animate-slide-u { animation: slideInUp var(--dur-slow) var(--ease) backwards; }
+}
+
+/* ── Skeleton ── */
+.skeleton {
+  background: linear-gradient(90deg, var(--c-border) 25%, var(--c-hover) 50%, var(--c-border) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--r-sm);
+}
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+  :root { --sidebar-w: 72px; }
+}

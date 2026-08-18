@@ -1,0 +1,1875 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ITSM Management — 統合ITサービスマネジメント</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   ITSM Management — Design Tokens (tech-utility / Datadog-GitHub)
+   ============================================================ */
+:root {
+  --bg:        oklch(97.5% 0.004 250);
+  --surface:   oklch(100% 0 0);
+  --surface-2: oklch(96% 0.006 250);
+  --fg:        oklch(24% 0.02 240);
+  --fg-2:      oklch(38% 0.018 240);
+  --muted:     oklch(51% 0.018 240);
+  --muted-2:   oklch(65% 0.014 240);
+  --border:    oklch(90.5% 0.008 240);
+  --border-2:  oklch(84% 0.011 240);
+
+  --accent:        oklch(55% 0.15 145);
+  --accent-strong: oklch(47% 0.16 145);
+  --accent-soft:   oklch(95% 0.04 145);
+  --accent-fg:     oklch(42% 0.13 145);
+  --accent-contrast: oklch(99% 0 0);
+
+  --success:      oklch(52% 0.14 150);
+  --success-bg:   oklch(95% 0.035 150);
+  --success-fg:   oklch(42% 0.13 150);
+  --danger:       oklch(57% 0.19 25);
+  --danger-contrast: oklch(99% 0 0);
+  --danger-bg:    oklch(96% 0.02 25);
+  --danger-fg:    oklch(46% 0.17 25);
+  --warning:      oklch(62% 0.14 72);
+  --warning-bg:   oklch(97% 0.025 80);
+  --warning-fg:   oklch(45% 0.12 65);
+  --info:         oklch(55% 0.14 250);
+  --info-bg:      oklch(96% 0.02 250);
+  --info-fg:      oklch(44% 0.14 250);
+
+  --font-sans: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+
+  --sidebar-w: 248px;
+  --header-h: 56px;
+  --r-sm: 6px; --r-md: 8px; --r-lg: 10px; --r-xl: 14px;
+  --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.04);
+  --shadow-md: 0 4px 12px oklch(0% 0 0 / 0.06);
+  --shadow-lg: 0 12px 32px oklch(0% 0 0 / 0.14);
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="dark"] {
+  --bg:        oklch(19% 0.015 240);
+  --surface:   oklch(23% 0.015 240);
+  --surface-2: oklch(27% 0.016 240);
+  --fg:        oklch(95% 0.004 240);
+  --fg-2:      oklch(83% 0.01 240);
+  --muted:     oklch(66% 0.015 240);
+  --muted-2:   oklch(52% 0.014 240);
+  --border:    oklch(33% 0.016 240);
+  --border-2:  oklch(42% 0.016 240);
+
+  --accent:        oklch(72% 0.15 145);
+  --accent-strong: oklch(78% 0.15 145);
+  --accent-soft:   oklch(28% 0.05 145);
+  --accent-fg:     oklch(78% 0.14 145);
+  --accent-contrast: oklch(24% 0.03 145);
+
+  --success-bg:   oklch(28% 0.045 150); --success-fg:   oklch(78% 0.13 150); --success: oklch(72% 0.14 150);
+  --danger-contrast: oklch(24% 0.02 25);
+  --danger-bg:    oklch(28% 0.05 25);   --danger-fg:    oklch(76% 0.13 25);   --danger:  oklch(66% 0.17 25);
+  --warning-bg:   oklch(29% 0.045 80);  --warning-fg:   oklch(80% 0.12 75);   --warning: oklch(72% 0.13 72);
+  --info-bg:      oklch(28% 0.04 250);  --info-fg:      oklch(78% 0.12 250);  --info:    oklch(70% 0.13 250);
+
+  --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.3);
+  --shadow-md: 0 4px 12px oklch(0% 0 0 / 0.35);
+  --shadow-lg: 0 12px 32px oklch(0% 0 0 / 0.5);
+}
+
+/* ── Reset / Base ── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { font-size: 14px; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.7;
+  min-height: 100vh;
+}
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; color: inherit; }
+.tnum { font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+.mono { font-family: var(--font-mono); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm); }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted-2); }
+
+/* ── App Shell ── */
+.app { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: var(--sidebar-w); background: var(--surface);
+  border-right: 1px solid var(--border); display: flex; flex-direction: column;
+  height: 100vh; position: fixed; left: 0; top: 0; z-index: 50;
+  transition: width .22s var(--ease), transform .22s var(--ease); overflow: hidden;
+}
+.sidebar--collapsed { width: 64px; }
+
+.sidebar__logo { display: flex; align-items: center; gap: 11px; padding: 15px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.sidebar__logo-mark { width: 32px; height: 32px; border-radius: var(--r-md); background: var(--accent); color: var(--accent-contrast); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; letter-spacing: -0.02em; flex-shrink: 0; }
+.sidebar__logo-name { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; line-height: 1.2; }
+.sidebar__logo-sub { font-size: 10px; color: var(--accent-fg); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; }
+
+.sidebar__search { padding: 12px 14px; flex-shrink: 0; }
+.sidebar__search input { width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--r-md); font-size: 12px; background: var(--surface-2); color: var(--fg); outline: none; transition: border-color .15s var(--ease); }
+.sidebar__search input:focus { border-color: var(--accent); }
+
+.sidebar__nav { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 6px 8px; }
+.sidebar__section-title { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 10px 12px 4px; font-size: 11px; color: var(--muted-2); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; background: none; border: none; text-align: left; }
+.sidebar__item { display: flex; align-items: center; gap: 11px; width: 100%; padding: 8px 12px; border: none; background: none; border-radius: var(--r-md); color: var(--fg-2); font-size: 13px; text-align: left; cursor: pointer; transition: background .14s var(--ease), color .14s var(--ease); }
+.sidebar__item:hover { background: var(--surface-2); color: var(--fg); }
+.sidebar__item--active { background: var(--accent-soft); color: var(--accent-fg); font-weight: 600; }
+.sidebar__item--active:hover { background: var(--accent-soft); color: var(--accent-fg); }
+.sidebar__item svg { flex-shrink: 0; }
+.sidebar__item-label { flex: 1; min-width: 0; }
+.sidebar__item-label .l1 { font-weight: inherit; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar__item-label .l2 { font-size: 11px; color: var(--muted-2); line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.sidebar__footer { border-top: 1px solid var(--border); flex-shrink: 0; }
+.sidebar__user { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.sidebar__user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--fg-2); color: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+.sidebar__user-name { font-size: 13px; font-weight: 600; line-height: 1.3; white-space: nowrap; }
+.sidebar__user-role { font-size: 11px; color: var(--muted-2); line-height: 1.3; }
+.sidebar__foot-btn { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 16px; border: none; background: none; color: var(--fg-2); font-size: 13px; cursor: pointer; transition: background .14s var(--ease), color .14s var(--ease); }
+.sidebar__foot-btn:hover { background: var(--surface-2); color: var(--fg); }
+
+.main { flex: 1; margin-left: var(--sidebar-w); display: flex; flex-direction: column; min-height: 100vh; transition: margin-left .22s var(--ease); }
+.sidebar--collapsed ~ .main { margin-left: 64px; }
+
+.header { height: var(--header-h); background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; position: sticky; top: 0; z-index: 40; }
+.header__left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.header__title { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.header__crumb { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted-2); }
+.header__right { display: flex; align-items: center; gap: 8px; }
+.icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); color: var(--fg-2); cursor: pointer; transition: border-color .14s var(--ease), background .14s var(--ease); position: relative; }
+.icon-btn:hover { border-color: var(--border-2); background: var(--surface-2); color: var(--fg); }
+.icon-btn .dot { position: absolute; top: 5px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--danger); border: 1.5px solid var(--surface); }
+
+.content { flex: 1; padding: 20px 24px 32px; overflow-y: auto; }
+.page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
+.page-head h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.35; }
+.page-head .sub { font-size: 12.5px; color: var(--muted); margin-top: 3px; line-height: 1.6; }
+.page-head__actions { display: flex; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
+
+/* ── Buttons ── */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; border-radius: var(--r-md); border: 1px solid transparent; cursor: pointer; transition: background .14s var(--ease), border-color .14s var(--ease), color .14s var(--ease); white-space: nowrap; line-height: 1; font-size: 13px; letter-spacing: 0.01em; }
+.btn--md { padding: 9px 14px; }
+.btn--sm { padding: 7px 11px; font-size: 12.5px; }
+.btn--primary { background: var(--accent); color: var(--accent-contrast); }
+.btn--primary:hover { background: var(--accent-strong); }
+.btn--outline { background: var(--surface); color: var(--fg-2); border-color: var(--border-2); }
+.btn--outline:hover { background: var(--surface-2); border-color: var(--muted-2); color: var(--fg); }
+.btn--ghost { background: none; color: var(--fg-2); }
+.btn--ghost:hover { background: var(--surface-2); color: var(--fg); }
+.btn--danger { background: var(--danger); color: var(--danger-contrast); }
+.btn--danger:hover { background: oklch(49% 0.18 25); color: oklch(99% 0 0); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn--icon { padding: 7px; }
+
+/* ── Cards / KPI ── */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); }
+.card__head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+.card__head h3 { font-size: 13.5px; font-weight: 600; letter-spacing: -0.01em; }
+.card__body { padding: 16px 18px; }
+
+.kpi-grid { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 14px; margin-bottom: 16px; }
+.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 16px 18px; display: flex; align-items: flex-start; gap: 14px; transition: box-shadow .16s var(--ease), transform .16s var(--ease); }
+.kpi:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.kpi__icon { width: 38px; height: 38px; border-radius: var(--r-md); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.kpi__icon svg { width: 19px; height: 19px; }
+.kpi__label { font-size: 12px; color: var(--muted); font-weight: 500; line-height: 1.5; }
+.kpi__value { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; font-variant-numeric: tabular-nums; font-family: var(--font-mono); margin-top: 2px; }
+.kpi__sub { font-size: 11px; color: var(--muted-2); margin-top: 2px; line-height: 1.5; }
+
+.grid-2 { display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; margin-bottom: 16px; }
+.grid-2-eq { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+/* ── Pills ── */
+.pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 99px; font-size: 11.5px; font-weight: 600; line-height: 1.7; white-space: nowrap; border: 1px solid transparent; letter-spacing: 0.01em; }
+.pill--success { background: var(--success-bg); color: var(--success-fg); border-color: oklch(from var(--success) l c h / 0.25); }
+.pill--danger  { background: var(--danger-bg);  color: var(--danger-fg);  border-color: oklch(from var(--danger) l c h / 0.25); }
+.pill--warning { background: var(--warning-bg); color: var(--warning-fg); border-color: oklch(from var(--warning) l c h / 0.25); }
+.pill--info    { background: var(--info-bg);    color: var(--info-fg);    border-color: oklch(from var(--info) l c h / 0.25); }
+.pill--neutral { background: var(--surface-2);  color: var(--muted);       border-color: var(--border); }
+.pill__dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+/* ── Filter bar ── */
+.filter-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+.search { position: relative; }
+.search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--muted-2); pointer-events: none; }
+.search input { width: 240px; padding: 8px 10px 8px 32px; border: 1px solid var(--border); border-radius: var(--r-md); font-size: 12.5px; background: var(--surface); outline: none; transition: border-color .15s var(--ease); }
+.search input:focus { border-color: var(--accent); }
+.filter { display: flex; align-items: center; gap: 7px; }
+.filter label { font-size: 12px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+.filter select { padding: 7px 28px 7px 10px; border: 1px solid var(--border); border-radius: var(--r-md); font-size: 12.5px; background: var(--surface); color: var(--fg); cursor: pointer; outline: none; transition: border-color .15s var(--ease); }
+.filter select:focus { border-color: var(--accent); }
+.filter-bar .spacer { flex: 1; }
+
+/* ── Table ── */
+.table-wrap { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); overflow: hidden; }
+.table-scroll { overflow-x: auto; }
+table.tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.tbl thead th { text-align: left; padding: 10px 16px; font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; border-bottom: 1px solid var(--border); background: var(--surface-2); white-space: nowrap; user-select: none; }
+.tbl thead th.sortable { cursor: pointer; }
+.tbl thead th.sortable:hover { color: var(--fg); }
+.tbl tbody td { padding: 11px 16px; border-bottom: 1px solid var(--border); color: var(--fg); vertical-align: middle; }
+.tbl tbody tr:last-child td { border-bottom: none; }
+.tbl tbody tr { transition: background .12s var(--ease); }
+.tbl tbody tr.row-click { cursor: pointer; }
+.tbl tbody tr:hover { background: var(--surface-2); }
+.tbl .td-id { font-family: var(--font-mono); font-size: 12px; color: var(--fg-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tbl .td-title { font-weight: 500; max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tbl .td-muted { color: var(--muted); }
+.tbl .td-nowrap { white-space: nowrap; }
+.tbl .td-actions { display: flex; gap: 2px; }
+.row-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border: none; background: none; border-radius: var(--r-sm); color: var(--muted); cursor: pointer; transition: background .12s var(--ease), color .12s var(--ease); }
+.row-btn:hover { background: var(--surface-2); color: var(--fg); }
+.row-btn--danger:hover { background: var(--danger-bg); color: var(--danger-fg); }
+.sort-ind { font-size: 9px; margin-left: 4px; color: var(--accent-fg); }
+
+.pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 2px 0; }
+.pagination .count { font-size: 12px; color: var(--muted); }
+.pagination .pages { display: flex; gap: 4px; }
+
+/* ── Empty / loading ── */
+.empty { text-align: center; padding: 48px 24px; color: var(--muted); }
+.empty svg { width: 36px; height: 36px; margin: 0 auto 10px; opacity: 0.45; }
+.empty p { font-size: 13px; }
+.skeleton { background: linear-gradient(90deg, var(--border) 25%, var(--surface-2) 50%, var(--border) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: var(--r-sm); }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* ── Modal ── */
+.modal-overlay { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.modal-overlay__bg { position: absolute; inset: 0; background: oklch(15% 0.02 240 / 0.45); backdrop-filter: blur(2px); }
+.modal { position: relative; width: min(640px, 100%); max-height: 88vh; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-xl); box-shadow: var(--shadow-lg); overflow: hidden; animation: modalIn .18s var(--ease); }
+@keyframes modalIn { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+.modal__head { display: flex; align-items: center; justify-content: space-between; padding: 16px 22px; border-bottom: 1px solid var(--border); }
+.modal__head h3 { font-size: 15px; font-weight: 600; }
+.modal__close { width: 30px; height: 30px; border: none; background: none; border-radius: var(--r-sm); color: var(--muted); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.modal__close:hover { background: var(--surface-2); color: var(--fg); }
+.modal__body { padding: 20px 22px; overflow-y: auto; }
+.modal__foot { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 22px; border-top: 1px solid var(--border); }
+
+/* ── Forms ── */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field--full { grid-column: 1 / -1; }
+.field label { font-size: 12.5px; font-weight: 600; color: var(--fg-2); }
+.field label .req { color: var(--danger); margin-left: 3px; }
+.field input, .field select, .field textarea { padding: 8px 11px; border: 1px solid var(--border); border-radius: var(--r-md); font-size: 13px; background: var(--surface); outline: none; transition: border-color .15s var(--ease); width: 100%; }
+.field textarea { min-height: 78px; resize: vertical; }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+.field .err { font-size: 11.5px; color: var(--danger-fg); }
+.field .hint { font-size: 11.5px; color: var(--muted-2); }
+
+/* ── Detail list ── */
+.dl { display: grid; grid-template-columns: 118px 1fr; gap: 9px 16px; font-size: 13px; }
+.dl dt { color: var(--muted); font-weight: 500; }
+.dl dd { color: var(--fg); word-break: break-word; }
+
+/* ── Charts ── */
+.chart-box { display: flex; align-items: center; justify-content: center; }
+.chart-legend { display: flex; flex-direction: column; gap: 9px; font-size: 12px; color: var(--fg-2); }
+.chart-legend .li { display: flex; align-items: center; gap: 8px; }
+.chart-legend .sw { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.hbar { height: 8px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
+.hbar > div { height: 100%; border-radius: 99px; transition: width .5s var(--ease); }
+
+/* ── Realtime ── */
+.rt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.rt-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 16px 18px; display: flex; align-items: center; gap: 14px; transition: box-shadow .16s var(--ease); }
+.rt-card:hover { box-shadow: var(--shadow-md); }
+.rt-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.rt-dot--pulse { animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 currentColor; } 50% { box-shadow: 0 0 0 5px transparent; } }
+
+/* ── Settings ── */
+.setting-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+.setting-row:last-child { border-bottom: none; }
+.setting-row .sr-label { font-weight: 500; font-size: 13px; }
+.setting-row .sr-desc { font-size: 11.5px; color: var(--muted-2); margin-top: 1px; }
+.setting-row .sr-value { font-family: var(--font-mono); font-size: 12.5px; color: var(--fg-2); white-space: nowrap; }
+
+/* ── Tag / misc ── */
+.section-gap { margin-bottom: 16px; }
+.demo-note { font-size: 11px; color: var(--muted-2); display: flex; align-items: center; gap: 5px; }
+
+/* ── Toast ── */
+.toast-wrap { position: fixed; top: 16px; right: 16px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+.toast { padding: 11px 18px; border-radius: var(--r-md); background: var(--fg); color: var(--surface); font-size: 13px; box-shadow: var(--shadow-lg); animation: toastIn .25s var(--ease); max-width: 380px; border-left: 3px solid var(--border-2); }
+.toast--success { border-left-color: var(--success); }
+.toast--error { border-left-color: var(--danger); }
+@keyframes toastIn { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+
+@media (max-width: 1180px) { .kpi-grid { grid-template-columns: repeat(3, minmax(0,1fr)); } }
+@media (max-width: 900px) { .grid-2, .grid-2-eq { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+<script>
+/* ── Mock data layer (sample / demo) ── */
+(function(){
+  const now = new Date();
+  const d = (days,h=9) => new Date(now.getFullYear(),now.getMonth(),now.getDate()-days,h,0).toISOString();
+  const f = (days,h=17) => new Date(now.getFullYear(),now.getMonth(),now.getDate()+days,h,0).toISOString();
+
+  const USERS = [
+    {id:1,display_name:'田中 太郎',email:'tanaka@example.com',role:'admin',department:'IT管理課'},
+    {id:2,display_name:'佐藤 花子',email:'sato@example.com',role:'operator',department:'ヘルプデスク'},
+    {id:3,display_name:'鈴木 一郎',email:'suzuki@example.com',role:'operator',department:'インフラ課'},
+    {id:4,display_name:'山田 美咲',email:'yamada@example.com',role:'manager',department:'IT管理課'},
+    {id:5,display_name:'高橋 健太',email:'takahashi@example.com',role:'viewer',department:'総務部'},
+  ];
+
+  const INCIDENTS = [
+    {id:1,ticket_no:'INC-2026-0001',title:'Microsoft 365 メール送信不可',description:'Outlook経由のメール送信が全社で不可。Exchange Online障害の可能性。',priority:'critical',status:'in_progress',category:'メール',assignee_id:2,site:'本社',system_name:'Microsoft 365',due_at:f(0,12),created_at:d(0,8),updated_at:d(0,10),resolved_at:null},
+    {id:2,ticket_no:'INC-2026-0002',title:'VPN接続タイムアウト（現場A）',description:'現場AからのVPN接続が頻繁にタイムアウトする。',priority:'high',status:'open',category:'ネットワーク',assignee_id:3,site:'現場A',system_name:'VPN',due_at:f(1),created_at:d(0,9),updated_at:d(0,9),resolved_at:null},
+    {id:3,ticket_no:'INC-2026-0003',title:'プリンタ印刷キュー滞留',description:'3Fプリンタの印刷キューが滞留している。',priority:'medium',status:'open',category:'プリンタ',assignee_id:2,site:'本社',system_name:'プリンタ',due_at:f(2),created_at:d(1,14),updated_at:d(1,14),resolved_at:null},
+    {id:4,ticket_no:'INC-2026-0004',title:'Teams通話品質劣化',description:'Teams会議中に音声が途切れる現象が複数報告。',priority:'high',status:'in_progress',category:'コミュニケーション',assignee_id:3,site:'本社',system_name:'Microsoft 365',due_at:f(0,18),created_at:d(1,10),updated_at:d(0,11),resolved_at:null},
+    {id:5,ticket_no:'INC-2026-0005',title:'CADソフト ライセンスエラー',description:'AutoCAD起動時にライセンス認証に失敗する。',priority:'medium',status:'waiting',category:'ソフトウェア',assignee_id:3,site:'現場B',system_name:'CAD',due_at:f(3),created_at:d(2,9),updated_at:d(1,16),resolved_at:null},
+    {id:6,ticket_no:'INC-2026-0006',title:'ファイルサーバ応答遅延',description:'共有フォルダへのアクセスに10秒以上かかる。',priority:'high',status:'resolved',category:'サーバ',assignee_id:3,site:'本社',system_name:'FileServer',due_at:d(0,18),created_at:d(3,8),updated_at:d(1,15),resolved_at:d(1,15)},
+    {id:7,ticket_no:'INC-2026-0007',title:'新入社員PC セットアップ依頼',description:'4月入社の5名分のPC初期設定。',priority:'low',status:'closed',category:'PC',assignee_id:2,site:'本社',system_name:'PC',due_at:d(0),created_at:d(5,9),updated_at:d(2,17),resolved_at:d(2,17)},
+    {id:8,ticket_no:'INC-2026-0008',title:'OneDrive 同期エラー',description:'特定ユーザーのOneDriveが同期停止中。',priority:'medium',status:'in_progress',category:'クラウド',assignee_id:2,site:'本社',system_name:'Microsoft 365',due_at:f(1,12),created_at:d(1,11),updated_at:d(0,14),resolved_at:null},
+    {id:9,ticket_no:'INC-2026-0009',title:'Wi-Fi 接続不安定（2F会議室）',description:'2F会議室エリアのWi-Fiが断続的に切断。',priority:'medium',status:'open',category:'ネットワーク',assignee_id:3,site:'本社',system_name:'ネットワーク',due_at:f(2),created_at:d(0,13),updated_at:d(0,13),resolved_at:null},
+    {id:10,ticket_no:'INC-2026-0010',title:'Entra ID 条件付きアクセス誤ブロック',description:'正規ユーザーがMFA後もブロックされる。',priority:'critical',status:'resolved',category:'認証',assignee_id:1,site:'全拠点',system_name:'Entra ID',due_at:d(1,12),created_at:d(4,7),updated_at:d(3,11),resolved_at:d(3,11)},
+    {id:11,ticket_no:'INC-2026-0011',title:'SharePoint サイトアクセス権エラー',description:'部門サイトに正規メンバーがアクセスできない。',priority:'high',status:'open',category:'クラウド',assignee_id:2,site:'本社',system_name:'Microsoft 365',due_at:f(1),created_at:d(0,11),updated_at:d(0,11),resolved_at:null},
+    {id:12,ticket_no:'INC-2026-0012',title:'基幹システム ログイン不可',description:'会計システムにログインできない（パスワード期限切れ多発）。',priority:'critical',status:'in_progress',category:'業務システム',assignee_id:1,site:'本社',system_name:'会計システム',due_at:f(0,15),created_at:d(0,7),updated_at:d(0,9),resolved_at:null},
+    {id:13,ticket_no:'INC-2026-0013',title:'モバイル端末 紛失報告',description:'営業担当がスマートフォンを社外で紛失。リモートワイプ要。',priority:'critical',status:'resolved',category:'セキュリティ',assignee_id:1,site:'現場A',system_name:'MDM',due_at:d(0,12),created_at:d(2,16),updated_at:d(2,18),resolved_at:d(2,18)},
+    {id:14,ticket_no:'INC-2026-0014',title:'プロジェクタ HDMI接続不良',description:'大会議室のプロジェクタが映らない。',priority:'low',status:'closed',category:'AV機器',assignee_id:2,site:'本社',system_name:'AV機器',due_at:d(1),created_at:d(4,13),updated_at:d(3,10),resolved_at:d(3,10)},
+    {id:15,ticket_no:'INC-2026-0015',title:'メール誤送信（添付ファイル）',description:'機密ファイルを誤って外部に送信。DLP連携で要調査。',priority:'high',status:'in_progress',category:'セキュリティ',assignee_id:1,site:'本社',system_name:'Microsoft 365',due_at:f(0,17),created_at:d(0,10),updated_at:d(0,12),resolved_at:null},
+    {id:16,ticket_no:'INC-2026-0016',title:'現場B 回線断（光ケーブル工事）',description:'近隣工事の影響で現場Bの光回線が不通。',priority:'high',status:'waiting',category:'ネットワーク',assignee_id:3,site:'現場B',system_name:'WAN',due_at:f(1,12),created_at:d(1,8),updated_at:d(0,15),resolved_at:null},
+    {id:17,ticket_no:'INC-2026-0017',title:'Windows Update後 起動不可',description:'更新適用後に複数PCがブルースクリーンで起動しない。',priority:'critical',status:'in_progress',category:'PC',assignee_id:3,site:'本社',system_name:'Windows',due_at:f(0,14),created_at:d(0,9),updated_at:d(0,13),resolved_at:null},
+    {id:18,ticket_no:'INC-2026-0018',title:'共有プリンタ トナー切れ',description:'2F複合機のトナーが切れて印刷不可。',priority:'low',status:'resolved',category:'プリンタ',assignee_id:2,site:'本社',system_name:'プリンタ',due_at:d(0,15),created_at:d(2,11),updated_at:d(2,13),resolved_at:d(2,13)},
+    {id:19,ticket_no:'INC-2026-0019',title:'VPN同時接続数 上限超過',description:'リモート勤務集中でVPN接続が上限に達し新規接続不可。',priority:'medium',status:'open',category:'ネットワーク',assignee_id:3,site:'全拠点',system_name:'VPN',due_at:f(1),created_at:d(0,8),updated_at:d(0,8),resolved_at:null},
+    {id:20,ticket_no:'INC-2026-0020',title:'バックアップジョブ 失敗',description:'夜間のファイルサーバ自動バックアップが3夜連続失敗。',priority:'high',status:'in_progress',category:'サーバ',assignee_id:3,site:'本社',system_name:'BackupServer',due_at:f(0,20),created_at:d(1,7),updated_at:d(0,9),resolved_at:null},
+  ];
+
+  const PROBLEMS = [
+    {id:1,ticket_no:'PRB-2026-0001',title:'VPN接続タイムアウト反復',status:'investigating',priority:'high',root_cause:'',workaround:'再接続で一時復旧',related_incident_ids:[2],created_at:d(1),updated_at:d(0)},
+    {id:2,ticket_no:'PRB-2026-0002',title:'Exchange Onlineメール遅延',status:'known_error',priority:'critical',root_cause:'MS側リージョン障害',workaround:'OWA経由で送信',related_incident_ids:[1],created_at:d(2),updated_at:d(0)},
+    {id:3,ticket_no:'PRB-2026-0003',title:'プリンタドライバ互換性問題',status:'open',priority:'medium',root_cause:'',workaround:'旧ドライバ使用',related_incident_ids:[3],created_at:d(3),updated_at:d(1)},
+    {id:4,ticket_no:'PRB-2026-0004',title:'Teams音声品質劣化（帯域）',status:'resolved',priority:'high',root_cause:'QoS未設定',workaround:'',related_incident_ids:[4],created_at:d(5),updated_at:d(1)},
+  ];
+
+  const CHANGES = [
+    {id:1,ticket_no:'CHG-2026-0001',title:'VPNクライアントバージョンアップ',change_type:'normal',risk_level:'medium',status:'review',scheduled_at:f(7),created_at:d(3),updated_at:d(1)},
+    {id:2,ticket_no:'CHG-2026-0002',title:'ファイルサーバ ストレージ増設',change_type:'normal',risk_level:'low',status:'approved',scheduled_at:f(14),created_at:d(5),updated_at:d(2)},
+    {id:3,ticket_no:'CHG-2026-0003',title:'Entra ID 条件付きアクセスポリシー変更',change_type:'emergency',risk_level:'high',status:'implementing',scheduled_at:f(0),created_at:d(1),updated_at:d(0)},
+    {id:4,ticket_no:'CHG-2026-0004',title:'Wi-Fi AP追加設置（2F）',change_type:'standard',risk_level:'low',status:'draft',scheduled_at:f(21),created_at:d(0),updated_at:d(0)},
+    {id:5,ticket_no:'CHG-2026-0005',title:'Microsoft 365 E5ライセンス移行',change_type:'normal',risk_level:'high',status:'closed',scheduled_at:d(2),created_at:d(14),updated_at:d(2)},
+  ];
+
+  const CMDB_ITEMS = [
+    {id:1,ci_id:'CI-2026-0001',name:'AD-DC01',ci_type:'server',environment:'production',site:'本社',status:'active',owner:'インフラ課',created_at:d(90)},
+    {id:2,ci_id:'CI-2026-0002',name:'FILE-SV01',ci_type:'server',environment:'production',site:'本社',status:'active',owner:'インフラ課',created_at:d(90)},
+    {id:3,ci_id:'CI-2026-0003',name:'VPN-GW01',ci_type:'network',environment:'production',site:'本社',status:'active',owner:'インフラ課',created_at:d(60)},
+    {id:4,ci_id:'CI-2026-0004',name:'SW-CORE-01',ci_type:'network',environment:'production',site:'本社',status:'active',owner:'インフラ課',created_at:d(90)},
+    {id:5,ci_id:'CI-2026-0005',name:'Microsoft 365',ci_type:'service',environment:'cloud',site:'全拠点',status:'active',owner:'IT管理課',created_at:d(180)},
+    {id:6,ci_id:'CI-2026-0006',name:'AP-2F-01',ci_type:'network',environment:'production',site:'本社',status:'maintenance',owner:'インフラ課',created_at:d(30)},
+    {id:7,ci_id:'CI-2026-0007',name:'PRINTER-3F',ci_type:'other',environment:'production',site:'本社',status:'active',owner:'ヘルプデスク',created_at:d(120)},
+    {id:8,ci_id:'CI-2026-0008',name:'CAD-LIC-SV',ci_type:'server',environment:'production',site:'本社',status:'active',owner:'インフラ課',created_at:d(60)},
+  ];
+
+  const KNOWLEDGE = [
+    {id:1,ticket_no:'KA-2026-0001',title:'VPN接続トラブルシューティング手順',category:'FAQ',status:'published',view_count:142,helpful_count:38,created_at:d(30)},
+    {id:2,ticket_no:'KA-2026-0002',title:'プリンタ障害 初動対応マニュアル',category:'障害対応手順',status:'published',view_count:87,helpful_count:21,created_at:d(45)},
+    {id:3,ticket_no:'KA-2026-0003',title:'Teams チーム作成申請手順',category:'FAQ',status:'published',view_count:201,helpful_count:56,created_at:d(60)},
+    {id:4,ticket_no:'KA-2026-0004',title:'新入社員PC セットアップ手順書',category:'運用手順',status:'published',view_count:95,helpful_count:32,created_at:d(20)},
+    {id:5,ticket_no:'KA-2026-0005',title:'現場VPN接続ガイド',category:'現場向け手順',status:'review',view_count:12,helpful_count:3,created_at:d(5)},
+    {id:6,ticket_no:'KA-2026-0006',title:'OneDrive同期エラー復旧手順',category:'FAQ',status:'draft',view_count:0,helpful_count:0,created_at:d(1)},
+  ];
+
+  const ASSETS = [
+    {id:1,asset_no:'AST-2026-0001',name:'ThinkPad T14s（田中）',asset_type:'pc',site:'本社',status:'in_use',assignee:'田中 太郎',purchase_date:d(365),warranty_end:f(365),created_at:d(365)},
+    {id:2,asset_no:'AST-2026-0002',name:'ThinkPad T14s（佐藤）',asset_type:'pc',site:'本社',status:'in_use',assignee:'佐藤 花子',purchase_date:d(200),warranty_end:f(530),created_at:d(200)},
+    {id:3,asset_no:'AST-2026-0003',name:'Dell U2722D モニタ',asset_type:'monitor',site:'本社',status:'in_use',assignee:'田中 太郎',purchase_date:d(300),warranty_end:f(65),created_at:d(300)},
+    {id:4,asset_no:'AST-2026-0004',name:'iPhone 15（山田）',asset_type:'smartphone',site:'本社',status:'in_use',assignee:'山田 美咲',purchase_date:d(180),warranty_end:f(550),created_at:d(180)},
+    {id:5,asset_no:'AST-2026-0005',name:'HP LaserJet Pro（3F）',asset_type:'printer',site:'本社',status:'maintenance',assignee:'',purchase_date:d(500),warranty_end:d(10),created_at:d(500)},
+    {id:6,asset_no:'AST-2026-0006',name:'Synology NAS DS920+',asset_type:'nas',site:'本社',status:'in_use',assignee:'インフラ課',purchase_date:d(400),warranty_end:f(330),created_at:d(400)},
+  ];
+
+  const PATCHES = [
+    {id:1,patch_no:'PTH-2026-0001',title:'Windows 11 24H2 累積更新 (KB5040XXX)',severity:'critical',patch_type:'windows_update',status:'deploying',target_count:186,applied_count:169,scheduled_at:f(3),created_at:d(5)},
+    {id:2,patch_no:'PTH-2026-0002',title:'Office 365 セキュリティパッチ 2026-05',severity:'high',patch_type:'office',status:'completed',target_count:186,applied_count:186,scheduled_at:d(3),created_at:d(10)},
+    {id:3,patch_no:'PTH-2026-0003',title:'FortiClient VPN 7.4.1',severity:'medium',patch_type:'vpn',status:'testing',target_count:45,applied_count:5,scheduled_at:f(7),created_at:d(3)},
+    {id:4,patch_no:'PTH-2026-0004',title:'AutoCAD 2026 Hotfix 3',severity:'low',patch_type:'cad',status:'planned',target_count:28,applied_count:0,scheduled_at:f(14),created_at:d(1)},
+    {id:5,patch_no:'PTH-2026-0005',title:'Dell BIOS Update A15',severity:'medium',patch_type:'bios',status:'completed',target_count:92,applied_count:88,scheduled_at:d(7),created_at:d(14)},
+  ];
+
+  const SECURITY_EVENTS = [
+    {id:1,event_no:'SEC-2026-0001',title:'不審ログイン検知（海外IP）',event_type:'suspicious_login',severity:'critical',status:'investigating',target:'user: yamada@example.com',action_taken:'アカウント一時停止',created_at:d(0,6)},
+    {id:2,event_no:'SEC-2026-0002',title:'USB デバイスブロック',event_type:'usb_block',severity:'medium',status:'resolved',target:'PC: DESKTOP-A1234',action_taken:'ポリシー通りブロック',created_at:d(1,14)},
+    {id:3,event_no:'SEC-2026-0003',title:'MFA未設定アカウント検出',event_type:'mfa_failure',severity:'high',status:'detected',target:'3アカウント',action_taken:'',created_at:d(2,10)},
+    {id:4,event_no:'SEC-2026-0004',title:'DLP: 機密ファイル外部共有',event_type:'dlp',severity:'critical',status:'contained',target:'SharePoint: 設計図共有リンク',action_taken:'リンク無効化済',created_at:d(0,11)},
+    {id:5,event_no:'SEC-2026-0005',title:'VPN認証連続失敗（10回超）',event_type:'vpn_failure',severity:'medium',status:'closed',target:'user: guest-site-b',action_taken:'パスワードリセット',created_at:d(3,8)},
+  ];
+
+  const SERVICE_REQUESTS = [
+    {id:1,req_no:'REQ-2026-0001',title:'新入社員用 PC 手配（5台）',category:'pc',requester:'高橋 健太',priority:'medium',status:'in_progress',approver:'山田 美咲',created_at:d(3)},
+    {id:2,req_no:'REQ-2026-0002',title:'Teams チーム作成依頼「DX推進室」',category:'teams',requester:'田中 太郎',priority:'low',status:'completed',approver:'山田 美咲',created_at:d(5)},
+    {id:3,req_no:'REQ-2026-0003',title:'VPN権限追加（現場B 5名）',category:'permission',requester:'鈴木 一郎',priority:'high',status:'approving',approver:'山田 美咲',created_at:d(1)},
+    {id:4,req_no:'REQ-2026-0004',title:'AutoCAD ライセンス追加購入',category:'software',requester:'高橋 健太',priority:'medium',status:'pending',approver:'',created_at:d(0)},
+    {id:5,req_no:'REQ-2026-0005',title:'退職者アカウント削除（3名）',category:'account',requester:'山田 美咲',priority:'high',status:'in_progress',approver:'田中 太郎',created_at:d(2)},
+  ];
+
+  const store = {
+    incidents: [...INCIDENTS],
+    problems: [...PROBLEMS],
+    changes: [...CHANGES],
+    cmdb: [...CMDB_ITEMS],
+    knowledge: [...KNOWLEDGE],
+    assets: [...ASSETS],
+    patches: [...PATCHES],
+    security: [...SECURITY_EVENTS],
+    requests: [...SERVICE_REQUESTS],
+    users: [...USERS],
+  };
+
+  const nextId = arr => Math.max(0, ...arr.map(x => x.id)) + 1;
+
+  const MockAPI = {
+    getUsers() { return store.users; },
+    async list(module, params = {}) {
+      let items = [...(store[module] || [])];
+      if (params.keyword) {
+        const kw = params.keyword.toLowerCase();
+        items = items.filter(x => JSON.stringify(x).toLowerCase().includes(kw));
+      }
+      Object.entries(params).forEach(([k, v]) => {
+        if (['keyword','skip','limit','sortKey','sortDir'].includes(k) || !v || v === 'all') return;
+        items = items.filter(x => String(x[k]) === String(v));
+      });
+      if (params.sortKey) {
+        const dir = params.sortDir === 'desc' ? -1 : 1;
+        items.sort((a, b) => { const va = a[params.sortKey] || '', vb = b[params.sortKey] || ''; return va < vb ? -dir : va > vb ? dir : 0; });
+      }
+      const total = items.length;
+      const skip = params.skip || 0, limit = params.limit || 50;
+      items = items.slice(skip, skip + limit);
+      return { items, total, page: Math.floor(skip / limit) + 1, size: limit };
+    },
+    async get(module, id) { return (store[module] || []).find(x => x.id === id) || null; },
+    async create(module, data) {
+      const arr = store[module]; if (!arr) return null;
+      const item = { id: nextId(arr), ...data, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      arr.unshift(item); return item;
+    },
+    async update(module, id, data) {
+      const arr = store[module] || [];
+      const idx = arr.findIndex(x => x.id === id); if (idx < 0) return null;
+      Object.assign(arr[idx], data, { updated_at: new Date().toISOString() });
+      return arr[idx];
+    },
+    async remove(module, id) {
+      const arr = store[module] || [];
+      const idx = arr.findIndex(x => x.id === id); if (idx < 0) return false;
+      arr.splice(idx, 1); return true;
+    },
+    getDashboardSummary() {
+      const inc = store.incidents;
+      const open = inc.filter(x => ['open','in_progress','waiting'].includes(x.status)).length;
+      const overdue = inc.filter(x => !['resolved','closed'].includes(x.status) && new Date(x.due_at) < new Date()).length;
+      const resolved = inc.filter(x => x.resolved_at);
+      const avgH = resolved.length ? resolved.reduce((s, x) => (new Date(x.resolved_at) - new Date(x.created_at)) / 3600000 + s, 0) / resolved.length : 0;
+      const slaOk = inc.filter(x => x.resolved_at && new Date(x.resolved_at) <= new Date(x.due_at)).length;
+      const slaRate = resolved.length ? Math.round(slaOk / resolved.length * 100) : 100;
+      return { total: inc.length, open, overdue, resolved: resolved.length, avgHours: Math.round(avgH * 10) / 10, slaRate, problems: store.problems.length, changes: store.changes.length, assets: store.assets.length, security: store.security.length };
+    }
+  };
+
+  window.MockAPI = MockAPI;
+  window.ITSM_USERS = USERS;
+  window.__ITSM_DATA = { store, INCIDENTS };
+})();
+</script>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext } = React;
+
+/* ============================================================
+   Icons — inline SVG (lucide-style, 24px stroke)
+   ============================================================ */
+const ICONS = {
+  dashboard: <><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></>,
+  ticket: <><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></>,
+  clock: <><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></>,
+  activity: <><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></>,
+  search: <><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></>,
+  bug: <><path d="M8 2l1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/></>,
+  refresh: <><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></>,
+  server: <><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></>,
+  book: <><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></>,
+  box: <><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></>,
+  shield: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></>,
+  lock: <><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></>,
+  inbox: <><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></>,
+  map: <><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21 3 6"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></>,
+  zap: <><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></>,
+  download: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>,
+  gear: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></>,
+  bell: <><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></>,
+  sun: <><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/></>,
+  moon: <><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></>,
+  plus: <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>,
+  edit: <><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></>,
+  trash: <><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></>,
+  x: <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
+  chevronDown: <><polyline points="6 9 12 15 18 9"/></>,
+  panelLeft: <><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></>,
+  check: <><polyline points="20 6 9 17 4 12"/></>,
+  alert: <><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>,
+  hourglass: <><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></>,
+  database: <><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></>,
+  monitor: <><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></>,
+};
+
+const Icon = ({ name, size = 18, ...rest }) => React.createElement('svg', {
+  xmlns: 'http://www.w3.org/2000/svg', width: size, height: size, viewBox: '0 0 24 24',
+  fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+  'aria-hidden': 'true', ...rest
+}, ICONS[name] || null);
+
+/* ============================================================
+   Status / priority mapping
+   ============================================================ */
+const TONES = {
+  critical:'danger', high:'warning', medium:'info', low:'success',
+  open:'info', in_progress:'warning', waiting:'info', resolved:'success', closed:'neutral',
+  active:'success', maintenance:'warning', draft:'neutral', review:'info', approved:'success',
+  implementing:'warning', rejected:'danger', published:'success', archived:'neutral',
+  investigating:'warning', known_error:'danger', detected:'danger', contained:'warning',
+  pending:'info', approving:'info', in_use:'success', stock:'neutral', retired:'warning',
+  disposed:'neutral', planned:'info', testing:'info', deploying:'warning', completed:'success',
+  failed:'danger', cancelled:'neutral',
+  normal:'info', standard:'info', emergency:'danger',
+  server:'info', network:'info', software:'info', service:'info', storage:'info', other:'neutral',
+  pc:'info', monitor:'info', nas:'info', printer:'info', smartphone:'info', ups:'info',
+  windows_update:'info', office:'info', bios:'info', vpn:'info', antivirus:'info', cad:'info',
+  suspicious_login:'danger', usb_block:'warning', mfa_failure:'warning', dlp:'danger', vpn_failure:'warning', unauthorized_access:'danger',
+  account:'info', teams:'info', permission:'info',
+  operational:'success', degraded:'warning', incident:'danger',
+  admin:'danger', operator:'info', manager:'warning', viewer:'neutral',
+};
+
+const LABELS = {
+  critical:'緊急', high:'高', medium:'中', low:'低',
+  open:'新規', in_progress:'対応中', waiting:'保留', resolved:'解決済', closed:'クローズ',
+  active:'稼働中', maintenance:'保守中', draft:'下書き', review:'レビュー中', approved:'承認済',
+  implementing:'実施中', rejected:'却下', published:'公開済', archived:'アーカイブ',
+  investigating:'調査中', known_error:'既知エラー', detected:'検知', contained:'封じ込め',
+  pending:'未処理', approving:'承認待ち', in_use:'使用中', stock:'在庫', retired:'退役',
+  disposed:'廃棄', planned:'計画中', testing:'テスト中', deploying:'展開中',
+  completed:'完了', failed:'失敗', cancelled:'取消',
+  normal:'通常', standard:'標準', emergency:'緊急',
+  server:'サーバ', network:'ネットワーク', software:'ソフトウェア', service:'サービス', storage:'ストレージ', other:'その他',
+  pc:'PC', monitor:'モニタ', nas:'NAS', printer:'プリンタ', smartphone:'スマホ', ups:'UPS',
+  windows_update:'Windows更新', office:'Office', bios:'BIOS', vpn:'VPN', antivirus:'AV', cad:'CAD',
+  suspicious_login:'不審ログイン', usb_block:'USBブロック', mfa_failure:'MFA失敗', dlp:'DLP', vpn_failure:'VPN失敗', unauthorized_access:'不正アクセス',
+  account:'アカウント', teams:'Teams', permission:'権限',
+  operational:'正常', degraded:'低下', incident:'障害',
+  admin:'管理者', operator:'オペレータ', manager:'マネージャ', viewer:'閲覧者',
+};
+
+const Pill = ({ value }) => {
+  const tone = TONES[value] || 'neutral';
+  const label = LABELS[value] || value;
+  return <span className={`pill pill--${tone}`}>{label}</span>;
+};
+
+/* ============================================================
+   Formatting helpers
+   ============================================================ */
+const fmtDate = (v, short) => {
+  if (!v) return '—';
+  const dt = new Date(v);
+  if (isNaN(dt)) return '—';
+  const mm = String(dt.getMonth() + 1).padStart(2, '0');
+  const dd = String(dt.getDate()).padStart(2, '0');
+  const hh = String(dt.getHours()).padStart(2, '0');
+  const mi = String(dt.getMinutes()).padStart(2, '0');
+  return short ? `${mm}/${dd} ${hh}:${mi}` : `${dt.getFullYear()}/${mm}/${dd} ${hh}:${mi}`;
+};
+
+const fmtDateDay = (v) => {
+  if (!v) return '—';
+  const dt = new Date(v);
+  if (isNaN(dt)) return '—';
+  return `${dt.getMonth() + 1}/${dt.getDate()}`;
+};
+
+/* ============================================================
+   Toast
+   ============================================================ */
+const ToastCtx = createContext(null);
+const ToastProvider = ({ children }) => {
+  const [toasts, setToasts] = useState([]);
+  const add = useCallback((msg, type = 'info') => {
+    const id = Date.now() + Math.random();
+    setToasts(p => [...p, { id, msg, type }]);
+    setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 3400);
+  }, []);
+  return (
+    <ToastCtx.Provider value={add}>
+      {children}
+      <div className="toast-wrap" aria-live="polite">
+        {toasts.map(t => <div key={t.id} className={t.type ? `toast toast--${t.type}` : 'toast'}>{t.msg}</div>)}
+      </div>
+    </ToastCtx.Provider>
+  );
+};
+const useToast = () => useContext(ToastCtx);
+
+/* ============================================================
+   UI primitives
+   ============================================================ */
+const Btn = ({ variant = 'outline', size = 'md', icon, children, className = '', ...rest }) => (
+  <button className={`btn btn--${variant} btn--${size} ${className}`} {...rest}>
+    {icon && <Icon name={icon} size={15} />}{children}
+  </button>
+);
+
+const KPI = ({ icon, label, value, sub, tone = 'info', id }) => {
+  const toneMap = {
+    info: { bg: 'var(--info-bg)', fg: 'var(--info-fg)', v: 'var(--fg)' },
+    success: { bg: 'var(--success-bg)', fg: 'var(--success-fg)', v: 'var(--success-fg)' },
+    warning: { bg: 'var(--warning-bg)', fg: 'var(--warning-fg)', v: 'var(--warning-fg)' },
+    danger: { bg: 'var(--danger-bg)', fg: 'var(--danger-fg)', v: 'var(--danger-fg)' },
+    accent: { bg: 'var(--accent-soft)', fg: 'var(--accent-fg)', v: 'var(--accent-fg)' },
+  };
+  const t = toneMap[tone] || toneMap.info;
+  return (
+    <div className="kpi" data-od-id={id}>
+      <div className="kpi__icon" style={{ background: t.bg, color: t.fg }}><Icon name={icon} /></div>
+      <div style={{ minWidth: 0 }}>
+        <div className="kpi__label">{label}</div>
+        <div className="kpi__value" style={{ color: t.v }}>{value}</div>
+        {sub && <div className="kpi__sub">{sub}</div>}
+      </div>
+    </div>
+  );
+};
+
+const Empty = ({ message = 'データがありません', icon = 'ticket' }) => (
+  <div className="empty">
+    <Icon name={icon} />
+    <p>{message}</p>
+  </div>
+);
+
+const SearchInput = ({ value, onChange, placeholder = '検索...' }) => (
+  <div className="search">
+    <Icon name="search" />
+    <input type="search" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} aria-label={placeholder} />
+  </div>
+);
+
+const FilterSelect = ({ label, value, options, onChange }) => (
+  <div className="filter">
+    <label>{label}</label>
+    <select value={value} onChange={e => onChange(e.target.value)}>
+      <option value="all">すべて</option>
+      {options.map(o => {
+        const v = typeof o === 'object' ? o.value : o;
+        const l = typeof o === 'object' ? o.label : (LABELS[o] || o);
+        return <option key={v} value={v}>{l}</option>;
+      })}
+    </select>
+  </div>
+);
+
+const Modal = ({ open, onClose, title, children, footer, width = 640 }) => {
+  const ref = useRef();
+  useEffect(() => {
+    if (!open) return;
+    const h = e => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    if (ref.current) ref.current.focus();
+    return () => document.removeEventListener('keydown', h);
+  }, [open]);
+  if (!open) return null;
+  return ReactDOM.createPortal(
+    <div className="modal-overlay" role="dialog" aria-modal="true" aria-label={title}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modal-overlay__bg" aria-hidden="true" />
+      <div className="modal" style={{ width: `min(${width}px, 100%)` }} ref={ref} tabIndex={-1}>
+        <div className="modal__head">
+          <h3>{title}</h3>
+          <button className="modal__close" onClick={onClose} aria-label="閉じる"><Icon name="x" size={16} /></button>
+        </div>
+        <div className="modal__body">{children}</div>
+        {footer && <div className="modal__foot">{footer}</div>}
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+const ConfirmDialog = ({ open, onClose, onConfirm, title = '確認', message = 'この操作を実行しますか？', confirmLabel = '実行', danger }) => (
+  <Modal open={open} onClose={onClose} title={title} width={440}
+    footer={<>
+      <Btn variant="outline" onClick={onClose}>キャンセル</Btn>
+      <Btn variant={danger ? 'danger' : 'primary'} onClick={() => { onConfirm(); onClose(); }}>{confirmLabel}</Btn>
+    </>}>
+    <p style={{ fontSize: 13, color: 'var(--fg-2)', lineHeight: 1.8 }}>{message}</p>
+  </Modal>
+);
+
+/* ============================================================
+   Data table
+   ============================================================ */
+const DataTable = ({ columns, data, loading, sortKey, sortDir, onSort, onRowClick, emptyMsg, id }) => {
+  if (loading) {
+    return <div className="card" style={{ padding: 16 }}><div className="skeleton" style={{ height: 240 }} /></div>;
+  }
+  if (!data || !data.length) return <Empty message={emptyMsg} />;
+  return (
+    <div className="table-wrap" data-od-id={id}>
+      <div className="table-scroll">
+        <table className="tbl">
+          <thead>
+            <tr>
+              {columns.map(col => (
+                <th key={col.key} className={col.sortable ? 'sortable' : ''}
+                  onClick={col.sortable ? () => onSort && onSort(col.key) : undefined}
+                  aria-sort={sortKey === col.key ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
+                  {col.label}
+                  {col.sortable && sortKey === col.key && <span className="sort-ind">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((row, i) => (
+              <tr key={row.id || i} className={onRowClick ? 'row-click' : ''} onClick={onRowClick ? () => onRowClick(row) : undefined}>
+                {columns.map(col => (
+                  <td key={col.key} className={col.cls}>
+                    {col.render ? col.render(row[col.key], row) : (row[col.key] ?? '—')}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+const Pagination = ({ page, total, size, onChange }) => {
+  const pages = Math.ceil(total / size);
+  if (pages <= 1) return null;
+  return (
+    <div className="pagination">
+      <span className="count">全 {total} 件中 {(page - 1) * size + 1}–{Math.min(page * size, total)} 件</span>
+      <div className="pages">
+        <Btn variant="outline" size="sm" disabled={page <= 1} onClick={() => onChange(page - 1)}>前へ</Btn>
+        {Array.from({ length: Math.min(pages, 7) }, (_, i) => {
+          const p = i + 1;
+          return <Btn key={p} variant={p === page ? 'primary' : 'outline'} size="sm" onClick={() => onChange(p)}>{p}</Btn>;
+        })}
+        <Btn variant="outline" size="sm" disabled={page >= pages} onClick={() => onChange(page + 1)}>次へ</Btn>
+      </div>
+    </div>
+  );
+};
+
+/* ============================================================
+   Charts (SVG, filled data encoding)
+   ============================================================ */
+const BarChart = ({ data, height = 150, color = 'var(--accent)' }) => {
+  if (!data || !data.length) return null;
+  const W = 460, H = height;
+  const max = Math.max(1, ...data.map(d => d.value));
+  const pad = { top: 14, bottom: 26, left: 4, right: 4 };
+  const cw = W - pad.left - pad.right, ch = H - pad.top - pad.bottom;
+  const barW = Math.min(42, (cw / data.length) * 0.55);
+  const step = cw / data.length;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto' }} role="img" aria-label="バーチャート">
+      {[0.25, 0.5, 0.75, 1].map(f => (
+        <line key={f} x1={pad.left} x2={W - pad.right} y1={pad.top + ch * (1 - f)} y2={pad.top + ch * (1 - f)}
+          stroke="var(--border)" strokeDasharray="3 4" strokeWidth="1" />
+      ))}
+      {data.map((d, i) => {
+        const x = pad.left + step * i + (step - barW) / 2;
+        const bh = (d.value / max) * ch;
+        const y = pad.top + ch - bh;
+        return (
+          <g key={i}>
+            <rect x={x} y={y} width={barW} height={bh} rx="4" fill={color} opacity="0.9" />
+            <text x={x + barW / 2} y={y - 6} textAnchor="middle" fontSize="11" fontFamily="var(--font-mono)" fill="var(--muted)">{d.value}</text>
+            <text x={x + barW / 2} y={H - 8} textAnchor="middle" fontSize="10.5" fill="var(--muted-2)">{d.label}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+};
+
+const LineChart = ({ data, height = 190, color = 'var(--accent)' }) => {
+  if (!data || !data.length) return null;
+  const W = 620, H = height;
+  const max = Math.max(1, ...data.map(d => d.value));
+  const pad = { top: 16, bottom: 30, left: 28, right: 16 };
+  const cw = W - pad.left - pad.right, ch = H - pad.top - pad.bottom;
+  const pts = data.map((d, i) => ({
+    x: pad.left + (i / Math.max(1, data.length - 1)) * cw,
+    y: pad.top + ch - (d.value / max) * ch, ...d
+  }));
+  const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+  const area = `${line} L${pts[pts.length - 1].x},${pad.top + ch} L${pts[0].x},${pad.top + ch} Z`;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto' }} role="img" aria-label="ラインチャート">
+      {[0, 0.5, 1].map(f => (
+        <line key={f} x1={pad.left} x2={W - pad.right} y1={pad.top + ch * (1 - f)} y2={pad.top + ch * (1 - f)}
+          stroke="var(--border)" strokeDasharray="3 4" strokeWidth="1" />
+      ))}
+      <path d={area} fill={color} opacity="0.1" />
+      <path d={line} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      {pts.map((p, i) => (
+        <g key={i}>
+          <circle cx={p.x} cy={p.y} r="4" fill="var(--surface)" stroke={color} strokeWidth="2" />
+          <text x={p.x} y={p.y - 10} textAnchor="middle" fontSize="11" fontFamily="var(--font-mono)" fill="var(--fg-2)" fontWeight="600">{p.value}</text>
+          <text x={p.x} y={H - 10} textAnchor="middle" fontSize="10.5" fill="var(--muted-2)">{p.label}</text>
+        </g>
+      ))}
+    </svg>
+  );
+};
+
+const DonutChart = ({ data, size = 150, thickness = 18, centerLabel, centerSub }) => {
+  const total = data.reduce((s, d) => s + d.value, 0) || 1;
+  const cx = size / 2, cy = size / 2, r = (size - thickness) / 2;
+  const circum = 2 * Math.PI * r;
+  let offset = 0;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label="ドーナツチャート">
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--surface-2)" strokeWidth={thickness} />
+      {data.map((d, i) => {
+        const pct = d.value / total;
+        const dash = pct * circum;
+        const el = <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={d.color} strokeWidth={thickness}
+          strokeDasharray={`${dash} ${circum - dash}`} strokeDashoffset={-offset} strokeLinecap="round" />;
+        offset += dash;
+        return el;
+      })}
+      <text x={cx} y={cy - (centerSub ? 8 : 0)} textAnchor="middle" dominantBaseline="central"
+        fontSize="26" fontWeight="700" fontFamily="var(--font-mono)" fill="var(--fg)">{centerLabel}</text>
+      {centerSub && <text x={cx} y={cy + 18} textAnchor="middle" fontSize="10.5" fill="var(--muted-2)">{centerSub}</text>}
+    </svg>
+  );
+};
+
+/* ============================================================
+   Navigation config
+   ============================================================ */
+const NAV_SECTIONS = [
+  { title: '概要', items: [
+    { key: 'dashboard', label: 'ダッシュボード', sub: 'KPI・SLA・トレンド', icon: 'dashboard' },
+    { key: 'incidents', label: 'インシデント管理', sub: '障害・問い合わせ管理', icon: 'ticket' },
+    { key: 'sla', label: 'SLA監視', sub: '遵守率・期限監視', icon: 'clock' },
+    { key: 'realtime', label: 'リアルタイム監視', sub: 'システム稼働状況', icon: 'activity' },
+  ]},
+  { title: 'ITSM管理', items: [
+    { key: 'problem', label: '問題管理', sub: 'RCA・既知エラーDB', icon: 'bug' },
+    { key: 'change', label: '変更管理', sub: '承認・ロールバック', icon: 'refresh' },
+    { key: 'cmdb', label: 'CMDB', sub: '構成情報・依存関係', icon: 'server' },
+    { key: 'knowledge', label: 'ナレッジ管理', sub: 'FAQ・手順書', icon: 'book' },
+    { key: 'asset', label: 'IT資産管理', sub: '所有・保守期限', icon: 'box' },
+    { key: 'patch', label: 'パッチ管理', sub: '適用状況・緊急パッチ', icon: 'shield' },
+    { key: 'security', label: 'セキュリティ管理', sub: 'MFA・DLP・AV', icon: 'lock' },
+    { key: 'request', label: 'サービス要求', sub: '申請・承認ワークフロー', icon: 'inbox' },
+  ]},
+  { title: '分析・自動化', items: [
+    { key: 'visualization', label: '統合可視化', sub: 'サービスマップ・影響図', icon: 'map' },
+    { key: 'automation', label: 'Automation', sub: '自動復旧・AI分析', icon: 'zap' },
+  ]},
+];
+
+/* ============================================================
+   Sidebar
+   ============================================================ */
+const Sidebar = ({ activeView, onNavigate, collapsed }) => {
+  const [collapsedSections, setCS] = useState({});
+  const [q, setQ] = useState('');
+  const toggleSection = t => setCS(p => ({ ...p, [t]: !p[t] }));
+
+  return (
+    <aside className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`} role="navigation" aria-label="メインナビゲーション" data-od-id="sidebar">
+      <div className="sidebar__logo">
+        <div className="sidebar__logo-mark">IT</div>
+        {!collapsed && (
+          <div>
+            <div className="sidebar__logo-name">ITSM Management</div>
+            <div className="sidebar__logo-sub">Service Desk</div>
+          </div>
+        )}
+      </div>
+
+      {!collapsed && (
+        <div className="sidebar__search">
+          <input type="search" placeholder="メニュー検索..." value={q} onChange={e => setQ(e.target.value)} aria-label="メニュー検索" />
+        </div>
+      )}
+
+      <nav className="sidebar__nav">
+        {NAV_SECTIONS.map(section => {
+          const items = q ? section.items.filter(i => i.label.toLowerCase().includes(q.toLowerCase())) : section.items;
+          if (q && !items.length) return null;
+          return (
+            <div key={section.title}>
+              {!collapsed && (
+                <button className="sidebar__section-title" onClick={() => toggleSection(section.title)} aria-expanded={!collapsedSections[section.title]}>
+                  {section.title}
+                  <Icon name="chevronDown" size={12} style={{ transform: collapsedSections[section.title] ? 'rotate(-90deg)' : 'none', transition: 'transform .15s' }} />
+                </button>
+              )}
+              {!collapsedSections[section.title] && items.map(item => (
+                <button key={item.key} className={`sidebar__item ${activeView === item.key ? 'sidebar__item--active' : ''}`}
+                  onClick={() => onNavigate(item.key)} aria-current={activeView === item.key ? 'page' : undefined}
+                  title={collapsed ? item.label : undefined}>
+                  <Icon name={item.icon} />
+                  {!collapsed && <span className="sidebar__item-label"><span className="l1">{item.label}</span><span className="l2">{item.sub}</span></span>}
+                </button>
+              ))}
+            </div>
+          );
+        })}
+      </nav>
+
+      <div className="sidebar__footer">
+        <div className="sidebar__user">
+          <div className="sidebar__user-avatar">田</div>
+          {!collapsed && (
+            <div style={{ minWidth: 0 }}>
+              <div className="sidebar__user-name">田中 太郎</div>
+              <div className="sidebar__user-role">管理者 · IT管理課</div>
+            </div>
+          )}
+        </div>
+        <button className="sidebar__foot-btn" onClick={() => onNavigate('system-settings')} title={collapsed ? 'システム設定' : undefined}>
+          <Icon name="gear" />
+          {!collapsed && 'システム設定'}
+        </button>
+      </div>
+    </aside>
+  );
+};
+
+/* ============================================================
+   Header
+   ============================================================ */
+const Header = ({ title, isDark, onToggleDark, collapsed, onToggleCollapse }) => (
+  <header className="header" role="banner" data-od-id="header">
+    <div className="header__left">
+      <button className="icon-btn" onClick={onToggleCollapse} aria-label={collapsed ? 'サイドバーを開く' : 'サイドバーを閉じる'}><Icon name="panelLeft" size={17} /></button>
+      <div style={{ minWidth: 0 }}>
+        <div className="header__title">{title}</div>
+        <div className="header__crumb">ホーム <span style={{ margin: '0 2px' }}>›</span> {title}</div>
+      </div>
+    </div>
+    <div className="header__right">
+      <button className="icon-btn" onClick={onToggleDark} aria-label={isDark ? 'ライトモードに切替' : 'ダークモードに切替'} title={isDark ? 'ライトモード' : 'ダークモード'}>
+        <Icon name={isDark ? 'sun' : 'moon'} size={17} />
+      </button>
+      <button className="icon-btn" aria-label="通知（3件）">
+        <Icon name="bell" size={17} /><span className="dot" />
+      </button>
+    </div>
+  </header>
+);
+
+/* ============================================================
+   Dashboard
+   ============================================================ */
+const DashboardView = ({ onNewIncident }) => {
+  const toast = useToast();
+  const summary = useMemo(() => MockAPI.getDashboardSummary(), []);
+
+  const trend = useMemo(() => {
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      days.push({ label: `${d.getMonth() + 1}/${d.getDate()}`, value: 0, key: d.toISOString().slice(0, 10) });
+    }
+    window.__ITSM_DATA.store.incidents.forEach(inc => {
+      const k = inc.created_at.slice(0, 10);
+      const s = days.find(x => x.key === k);
+      if (s) s.value++;
+    });
+    return days;
+  }, []);
+
+  const priorityDist = useMemo(() => {
+    const order = ['critical', 'high', 'medium', 'low'];
+    const count = {};
+    window.__ITSM_DATA.store.incidents.forEach(i => { count[i.priority] = (count[i.priority] || 0) + 1; });
+    return order.filter(k => count[k]).map(k => ({ label: LABELS[k], value: count[k] }));
+  }, []);
+
+  const categoryDist = useMemo(() => {
+    const map = {};
+    window.__ITSM_DATA.store.incidents.forEach(i => { map[i.category] = (map[i.category] || 0) + 1; });
+    const colors = ['var(--info)', 'var(--accent)', 'var(--warning)', 'var(--danger)', 'var(--muted-2)'];
+    return Object.entries(map).sort((a, b) => b[1] - a[1]).map(([label, value], i) => ({ label, value, color: colors[i % colors.length] }));
+  }, []);
+
+  const siteData = useMemo(() => {
+    const map = {};
+    window.__ITSM_DATA.store.incidents.forEach(i => {
+      if (['resolved', 'closed'].includes(i.status)) return;
+      map[i.site] = (map[i.site] || 0) + 1;
+    });
+    return Object.entries(map).map(([name, incidents]) => ({ name, incidents }));
+  }, []);
+
+  const slaDonut = useMemo(() => [
+    { value: summary.slaRate, color: 'var(--accent)' },
+    { value: 100 - summary.slaRate, color: 'var(--surface-2)' },
+  ], [summary]);
+
+  return (
+    <div>
+      <div className="page-head" data-od-id="dashboard-head">
+        <div>
+          <h1>ダッシュボード</h1>
+          <div className="sub">ITSM 全体の稼働状況と主要メトリクス。直近データを集約しています。</div>
+        </div>
+        <div className="page-head__actions">
+          <Btn variant="outline" icon="download" onClick={() => toast('レポート出力（デモ）', 'info')}>レポート出力</Btn>
+          <Btn variant="primary" icon="plus" onClick={onNewIncident}>新規インシデント</Btn>
+        </div>
+      </div>
+
+      <div className="kpi-grid">
+        <KPI id="kpi-total" icon="ticket" label="総チケット数" value={String(summary.total)} sub="全期間" tone="info" />
+        <KPI id="kpi-open" icon="hourglass" label="未対応" value={String(summary.open)} sub="要対応" tone="warning" />
+        <KPI id="kpi-overdue" icon="alert" label="SLA違反" value={String(summary.overdue)} sub="期限超過" tone="danger" />
+        <KPI id="kpi-sla" icon="check" label="SLA遵守率" value={summary.slaRate + '%'} sub="解決済ベース" tone="success" />
+        <KPI id="kpi-avg" icon="clock" label="平均解決時間" value={summary.avgHours + 'h'} sub="解決済チケット" tone="accent" />
+      </div>
+
+      <div className="grid-2">
+        <div className="card">
+          <div className="card__head"><h3>直近7日のインシデント推移</h3><span className="demo-note">作成ベース</span></div>
+          <div className="card__body"><LineChart data={trend} /></div>
+        </div>
+        <div className="card">
+          <div className="card__head"><h3>SLA遵守率</h3></div>
+          <div className="card__body" style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+            <DonutChart data={slaDonut} centerLabel={summary.slaRate + '%'} centerSub="遵守率" />
+            <div className="chart-legend">
+              <div className="li"><span className="sw" style={{ background: 'var(--accent)' }} />遵守 {summary.slaRate}%</div>
+              <div className="li"><span className="sw" style={{ background: 'var(--surface-2)' }} />違反 {100 - summary.slaRate}%</div>
+              <div className="li" style={{ color: 'var(--muted-2)', fontSize: 11.5 }}>解決済 {summary.resolved} 件を集計</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid-2-eq">
+        <div className="card">
+          <div className="card__head"><h3>優先度別の未解決分布</h3></div>
+          <div className="card__body"><BarChart data={priorityDist} /></div>
+        </div>
+        <div className="card">
+          <div className="card__head"><h3>カテゴリ別インシデント</h3></div>
+          <div className="card__body">
+            {categoryDist.map(c => {
+              const pct = Math.round(c.value / categoryDist.reduce((s, x) => s + x.value, 0) * 100);
+              return (
+                <div key={c.label} style={{ marginBottom: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, fontSize: 12.5 }}>
+                    <span style={{ color: 'var(--fg-2)' }}>{c.label}</span>
+                    <span className="mono" style={{ color: 'var(--muted)' }}>{c.value}件 · {pct}%</span>
+                  </div>
+                  <div className="hbar"><div style={{ width: pct + '%', background: c.color }} /></div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card__head">
+          <h3>拠点別の未解決インシデント</h3>
+        </div>
+        <div className="card__body">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+            {siteData.map(s => (
+              <div key={s.name} style={{ padding: '14px 16px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>{s.name}</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--muted-2)', marginTop: 2 }}>{s.incidents}件 未解決</div>
+                </div>
+                <span className={`pill pill--${s.incidents >= 4 ? 'danger' : s.incidents >= 2 ? 'warning' : 'success'}`}>
+                  <span className="pill__dot" />{s.incidents >= 4 ? '注意' : s.incidents >= 2 ? '警戒' : '安定'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ============================================================
+   Module registry + generic module view
+   ============================================================ */
+const MODULE_CONFIGS = {
+  incidents: {
+    key: 'incidents', label: 'インシデント管理', sub: '障害・問い合わせのチケット管理', dataKey: 'incidents', ticketField: 'ticket_no',
+    kpis: s => [
+      { icon: 'ticket', label: '総チケット', value: s.total + '件', tone: 'info' },
+      { icon: 'hourglass', label: '未対応', value: s.items.filter(x => ['open','in_progress','waiting'].includes(x.status)).length + '件', tone: 'warning' },
+      { icon: 'alert', label: 'SLA違反', value: s.items.filter(x => !['resolved','closed'].includes(x.status) && x.due_at && new Date(x.due_at) < new Date()).length + '件', tone: 'danger' },
+    ],
+    columns: [
+      { key: 'ticket_no', label: 'チケット番号', sortable: true, cls: 'td-id' },
+      { key: 'title', label: 'タイトル', sortable: true, cls: 'td-title' },
+      { key: 'priority', label: '優先度', sortable: true, render: v => <Pill value={v} /> },
+      { key: 'status', label: 'ステータス', sortable: true, render: v => <Pill value={v} /> },
+      { key: 'sla', label: 'SLA', render: (_, r) => <SLAPill dueAt={r.due_at} resolvedAt={r.resolved_at} /> },
+      { key: 'site', label: '拠点', sortable: true, cls: 'td-muted' },
+      { key: 'created_at', label: '作成日', sortable: true, render: v => <span className="mono tnum td-muted">{fmtDate(v, true)}</span>, cls: 'td-nowrap' },
+    ],
+    filters: [
+      { key: 'status', label: 'ステータス', options: ['open','in_progress','waiting','resolved','closed'] },
+      { key: 'priority', label: '優先度', options: ['critical','high','medium','low'] },
+      { key: 'site', label: '拠点', options: [{ value: '本社', label: '本社' }, { value: '現場A', label: '現場A' }, { value: '現場B', label: '現場B' }, { value: '全拠点', label: '全拠点' }] },
+    ],
+    formFields: [
+      { key: 'title', label: 'タイトル', type: 'text', required: true, full: true },
+      { key: 'priority', label: '優先度', type: 'select', options: ['critical','high','medium','low'], required: true },
+      { key: 'status', label: 'ステータス', type: 'select', options: ['open','in_progress','waiting','resolved','closed'] },
+      { key: 'category', label: 'カテゴリ', type: 'text' },
+      { key: 'site', label: '拠点', type: 'select', options: [{ value: '本社', label: '本社' }, { value: '現場A', label: '現場A' }, { value: '現場B', label: '現場B' }] },
+      { key: 'system_name', label: '対象システム', type: 'text' },
+      { key: 'description', label: '詳細', type: 'textarea', full: true },
+    ],
+    defaults: { priority: 'medium', status: 'open', site: '本社' },
+  },
+  problem: {
+    key: 'problem', label: '問題管理', sub: '根本原因分析・再発防止・既知エラーDB', dataKey: 'problems', ticketField: 'ticket_no',
+    kpis: s => [
+      { icon: 'bug', label: '未解決問題', value: s.items.filter(x => ['open','investigating','known_error'].includes(x.status)).length + '件', tone: 'info' },
+      { icon: 'alert', label: '既知エラー', value: s.items.filter(x => x.status === 'known_error').length + '件', tone: 'warning' },
+      { icon: 'book', label: '総登録数', value: s.total + '件', tone: 'success' },
+    ],
+    columns: [
+      { key: 'ticket_no', label: '問題番号', sortable: true, cls: 'td-id' },
+      { key: 'title', label: 'タイトル', sortable: true, cls: 'td-title' },
+      { key: 'status', label: 'ステータス', sortable: true, render: v => <Pill value={v} /> },
+      { key: 'priority', label: '優先度', sortable: true, render: v => <Pill value={v} /> },
+      { key: 'workaround', label: '回避策', cls: 'td-muted', render: v => v || '—' },
+      { key: 'created_at', label: '作成日', sortable: true, render: v => <span className="mono tnum td-muted">{fmtDate(v, true)}</span>, cls: 'td-nowrap' },
+    ],
+    filters: [
+      { key: 'status', label: 'ステータス', options: ['open','investigating','known_error','resolved','closed'] },
+      { key: 'priority', label: '優先度', options: ['critical','high','medium','low'] },
+    ],
+    formFields: [
+      { key: 'title', label: 'タイトル', type: 'text', required: true, full: true },
+      { key: 'priority', label: '優先度', type: 'select', options: ['critical','high','medium','low'], required: true },
+      { key: 'status', label: 'ステータス', type: 'select', options: ['open','investigating','known_error','resolved','closed'] },
+      { key: 'root_cause', label: '根本原因', type: 'textarea', full: true },
+      { key: 'workaround', label: '回避策', type: 'textarea', full: true },
+    ],
+    defaults: { priority: 'medium', status: 'open' },
+  },
+  change: {
+    key: 'change', label: '変更管理', sub: '変更申請・CAB承認・ロールバック管理', dataKey: 'changes', ticketField: 'ticket_no',
+    kpis: s => [
+      { icon: 'refresh', label: '変更総数', value: s.total + '件', tone: 'info' },
+      { icon: 'clock', label: '承認待ち', value: s.items.filter(x => ['review','approved'].includes(x.status)).length + '件', tone: 'warning' },
+      { icon: 'zap', label: '実施中', value: s.items.filter(x => x.status === 'implementing').length + '件', tone: 'danger' },
+    ],
+    columns: [
+      { key: 'ticket_no', label: '変更番号', sortable: true, cls: 'td-id' },
+      { key: 'title', label: 'タイトル', sortable: true, cls: 'td-title' },
+      { key: 'change_type', label: '種別', render: v => <Pill value={v} /> },
+      { key: 'risk_level', label: 'リスク', render: v => <Pill value={v} /> },
+      { key: 'status', label: 'ステータス', sortable: true, render: v => <Pill value={v} /> },
+      { key: 'scheduled_at', label: '実施予定', render: v => <span className="mono tnum td-muted">{fmtDate(v, true)}</span>, cls: 'td-nowrap' },
+    ],
+    filters: [
+      { key: 'status', label: 'ステータス', options: ['draft','review','approved','implementing','closed','rejected'] },
+      { key: 'risk_level', label: 'リスク', options: ['high','medium','low'] },
+    ],
+    formFields: [
+      { key: 'title', label: 'タイトル', type: 'text', required: true, full: true },
+      { key: 'change_type', label: '変更種別', type: 'select', options: ['normal','standard','emergency'], required: true },
+      { key: 'risk_level', label: 'リスクレベル', type: 'select', options: ['high','medium','low'] },
+      { key: 'status', label: 'ステータス', type: 'select', options: ['draft','review','approved','implementing','closed','rejected'] },
+      { key: 'scheduled_at', label: '実施予定日', type: 'date' },
+    ],
+    defaults: { change_type: 'normal', risk_level: 'medium', status: 'draft' },
+  },
+  cmdb: {
+    key: 'cmdb', label: 'CMDB', sub: '構成情報・依存関係・拠点ネットワーク', dataKey: 'cmdb', ticketField: 'ci_id',
+    kpis: s => [
+      { icon: 'database', label: '登録CI', value: s.total + '件', tone: 'info' },
+      { icon: 'server', label: 'サーバ/NW', value: s.items.filter(x => ['server','network'].includes(x.ci_type)).length + '件', tone: 'success' },
+      { icon: 'check', label: 'アクティブ', value: s.items.filter(x => x.status === 'active').length + '件', tone: 'accent' },
+    ],
+    columns: [
+      { key: 'ci_id', label: 'CI ID', sortable: true, cls: 'td-id' },
+      { key: 'name', label: '名前', sortable: true, render: v => <span className="mono">{v}</span> },
+      { key: 'ci_type', label: '種別', render: v => <Pill value={v} /> },
+      { key: 'environment', label: '環境', cls: 'td-muted' },
+      { key: 'site', label: '拠点', cls: 'td-muted' },
+      { key: 'status', label: '状態', render: v => <Pill value={v} /> },
+    ],
+    filters: [
+      { key: 'ci_type', label: '種別', options: ['server','network','software','service','storage','other'] },
+      { key: 'status', label: '状態', options: ['active','maintenance','retired'] },
+    ],
+    formFields: [
+      { key: 'name', label: '名前', type: 'text', required: true },
+      { key: 'ci_type', label: '種別', type: 'select', options: ['server','network','software','service','storage','other'], required: true },
+      { key: 'environment', label: '環境', type: 'select', options: [{ value: 'production', label: '本番' }, { value: 'staging', label: '検証' }, { value: 'cloud', label: 'クラウド' }] },
+      { key: 'site', label: '拠点', type: 'text' },
+      { key: 'owner', label: 'オーナー', type: 'text' },
+      { key: 'status', label: '状態', type: 'select', options: ['active','maintenance','retired'] },
+    ],
+    defaults: { ci_type: 'server', environment: 'production', status: 'active' },
+  },
+  knowledge: {
+    key: 'knowledge', label: 'ナレッジ管理', sub: 'FAQ・手順書・既知エラー情報', dataKey: 'knowledge', ticketField: 'ticket_no',
+    kpis: s => [
+      { icon: 'book', label: '公開記事', value: s.items.filter(x => x.status === 'published').length + '件', tone: 'success' },
+      { icon: 'activity', label: '総参照数', value: s.items.reduce((a, x) => a + (x.view_count || 0), 0) + '回', tone: 'info' },
+      { icon: 'clock', label: 'レビュー待ち', value: s.items.filter(x => ['draft','review'].includes(x.status)).length + '件', tone: 'warning' },
+    ],
+    columns: [
+      { key: 'ticket_no', label: '記事番号', sortable: true, cls: 'td-id' },
+      { key: 'title', label: 'タイトル', sortable: true, cls: 'td-title' },
+      { key: 'category', label: 'カテゴリ', cls: 'td-muted' },
+      { key: 'status', label: 'ステータス', render: v => <Pill value={v} /> },
+      { key: 'view_count', label: '参照数', sortable: true, render: v => <span className="mono tnum">{v}</span> },
+      { key: 'helpful_count', label: '役立った', sortable: true, render: v => <span className="mono tnum">{v}</span> },
+    ],
+    filters: [
+      { key: 'status', label: 'ステータス', options: ['draft','review','published','archived'] },
+      { key: 'category', label: 'カテゴリ', options: ['FAQ','障害対応手順','運用手順','現場向け手順'] },
+    ],
+    formFields: [
+      { key: 'title', label: 'タイトル', type: 'text', required: true, full: true },
+      { key: 'category', label: 'カテゴリ', type: 'select', options: ['FAQ','障害対応手順','運用手順','現場向け手順'], required: true },
+      { key: 'status', label: 'ステータス', type: 'select', options: ['draft','review','published','archived'] },
+    ],
+    defaults: { status: 'draft', category: 'FAQ' },
+  },
+  asset: {
+    key: 'asset', label: 'IT資産管理', sub: '所有・貸与・保守期限管理', dataKey: 'assets', ticketField: 'asset_no',
+    kpis: s => [
+      { icon: 'monitor', label: '管理資産', value: s.total + '台', tone: 'info' },
+      { icon: 'check', label: '使用中', value: s.items.filter(x => x.status === 'in_use').length + '台', tone: 'success' },
+      { icon: 'clock', label: '保守中', value: s.items.filter(x => x.status === 'maintenance').length + '台', tone: 'warning' },
+    ],
+    columns: [
+      { key: 'asset_no', label: '資産番号', sortable: true, cls: 'td-id' },
+      { key: 'name', label: '名称', sortable: true, cls: 'td-title' },
+      { key: 'asset_type', label: '種別', render: v => <Pill value={v} /> },
+      { key: 'site', label: '拠点', cls: 'td-muted' },
+      { key: 'assignee', label: '利用者', cls: 'td-muted', render: v => v || '—' },
+      { key: 'status', label: '状態', render: v => <Pill value={v} /> },
+    ],
+    filters: [
+      { key: 'asset_type', label: '種別', options: ['pc','monitor','nas','printer','smartphone'] },
+      { key: 'status', label: '状態', options: ['stock','in_use','maintenance','retired','disposed'] },
+    ],
+    formFields: [
+      { key: 'name', label: '名称', type: 'text', required: true, full: true },
+      { key: 'asset_type', label: '種別', type: 'select', options: ['pc','monitor','nas','printer','smartphone','ups'], required: true },
+      { key: 'site', label: '拠点', type: 'text' },
+      { key: 'assignee', label: '利用者', type: 'text' },
+      { key: 'status', label: '状態', type: 'select', options: ['stock','in_use','maintenance','retired','disposed'] },
+    ],
+    defaults: { asset_type: 'pc', status: 'stock' },
+  },
+  patch: {
+    key: 'patch', label: 'パッチ管理', sub: '適用状況・失敗端末・緊急パッチ', dataKey: 'patches', ticketField: 'patch_no',
+    kpis: s => {
+      const tgt = s.items.reduce((a, x) => a + (x.target_count || 0), 0), app = s.items.reduce((a, x) => a + (x.applied_count || 0), 0);
+      return [
+        { icon: 'shield', label: 'パッチ展開', value: s.total + '件', tone: 'info' },
+        { icon: 'download', label: '適用率', value: (tgt ? Math.round(app / tgt * 100) : 0) + '%', tone: 'success' },
+        { icon: 'alert', label: '緊急未完了', value: s.items.filter(x => x.severity === 'critical' && x.status !== 'completed').length + '件', tone: 'danger' },
+      ];
+    },
+    columns: [
+      { key: 'patch_no', label: 'パッチ番号', sortable: true, cls: 'td-id' },
+      { key: 'title', label: 'タイトル', sortable: true, cls: 'td-title' },
+      { key: 'severity', label: '重要度', render: v => <Pill value={v} /> },
+      { key: 'status', label: '状態', render: v => <Pill value={v} /> },
+      { key: 'applied', label: '適用/対象', render: (_, r) => <span className="mono tnum">{r.applied_count || 0}/{r.target_count || 0}</span> },
+      { key: 'scheduled_at', label: '期限', render: v => <span className="mono tnum td-muted">{fmtDate(v, true)}</span>, cls: 'td-nowrap' },
+    ],
+    filters: [
+      { key: 'severity', label: '重要度', options: ['critical','high','medium','low'] },
+      { key: 'status', label: '状態', options: ['planned','testing','deploying','completed','failed','cancelled'] },
+    ],
+    formFields: [
+      { key: 'title', label: 'タイトル', type: 'text', required: true, full: true },
+      { key: 'severity', label: '重要度', type: 'select', options: ['critical','high','medium','low'], required: true },
+      { key: 'patch_type', label: '種別', type: 'select', options: ['windows_update','office','bios','vpn','antivirus','cad'] },
+      { key: 'status', label: '状態', type: 'select', options: ['planned','testing','deploying','completed','failed','cancelled'] },
+      { key: 'target_count', label: '対象台数', type: 'number' },
+    ],
+    defaults: { severity: 'medium', status: 'planned', patch_type: 'windows_update' },
+  },
+  security: {
+    key: 'security', label: 'セキュリティ管理', sub: 'MFA・不審ログイン・DLP・AV', dataKey: 'security', ticketField: 'event_no',
+    kpis: s => [
+      { icon: 'alert', label: '重要アラート', value: s.items.filter(x => ['critical','high'].includes(x.severity) && !['resolved','closed'].includes(x.status)).length + '件', tone: 'danger' },
+      { icon: 'bug', label: '調査中', value: s.items.filter(x => x.status === 'investigating').length + '件', tone: 'warning' },
+      { icon: 'lock', label: 'イベント総数', value: s.total + '件', tone: 'info' },
+    ],
+    columns: [
+      { key: 'event_no', label: 'イベント番号', sortable: true, cls: 'td-id' },
+      { key: 'title', label: '内容', sortable: true, cls: 'td-title' },
+      { key: 'event_type', label: '種別', render: v => <Pill value={v} /> },
+      { key: 'severity', label: '重要度', render: v => <Pill value={v} /> },
+      { key: 'status', label: '状態', render: v => <Pill value={v} /> },
+      { key: 'target', label: '対象', cls: 'td-muted' },
+    ],
+    filters: [
+      { key: 'severity', label: '重要度', options: ['critical','high','medium','low'] },
+      { key: 'status', label: '状態', options: ['detected','investigating','contained','resolved','closed'] },
+    ],
+    formFields: [
+      { key: 'title', label: '内容', type: 'text', required: true, full: true },
+      { key: 'event_type', label: '種別', type: 'select', options: ['suspicious_login','usb_block','mfa_failure','dlp','vpn_failure','unauthorized_access'], required: true },
+      { key: 'severity', label: '重要度', type: 'select', options: ['critical','high','medium','low'] },
+      { key: 'status', label: '状態', type: 'select', options: ['detected','investigating','contained','resolved','closed'] },
+      { key: 'target', label: '対象', type: 'text' },
+      { key: 'action_taken', label: '対応内容', type: 'textarea', full: true },
+    ],
+    defaults: { severity: 'medium', status: 'detected', event_type: 'other' },
+  },
+  request: {
+    key: 'request', label: 'サービス要求', sub: '申請・承認ワークフロー管理', dataKey: 'requests', ticketField: 'req_no',
+    kpis: s => [
+      { icon: 'inbox', label: '未処理', value: s.items.filter(x => ['pending','approving','in_progress'].includes(x.status)).length + '件', tone: 'info' },
+      { icon: 'clock', label: '承認待ち', value: s.items.filter(x => x.status === 'approving').length + '件', tone: 'warning' },
+      { icon: 'check', label: '完了', value: s.items.filter(x => x.status === 'completed').length + '件', tone: 'success' },
+    ],
+    columns: [
+      { key: 'req_no', label: '申請番号', sortable: true, cls: 'td-id' },
+      { key: 'title', label: '申請内容', sortable: true, cls: 'td-title' },
+      { key: 'category', label: 'カテゴリ', render: v => <Pill value={v} /> },
+      { key: 'requester', label: '申請者', cls: 'td-muted' },
+      { key: 'status', label: '状態', render: v => <Pill value={v} /> },
+      { key: 'created_at', label: '申請日', render: v => <span className="mono tnum td-muted">{fmtDate(v, true)}</span>, cls: 'td-nowrap' },
+    ],
+    filters: [
+      { key: 'status', label: '状態', options: ['pending','approving','in_progress','completed','rejected','cancelled'] },
+      { key: 'category', label: 'カテゴリ', options: ['pc','account','teams','permission','software'] },
+    ],
+    formFields: [
+      { key: 'title', label: '申請内容', type: 'text', required: true, full: true },
+      { key: 'category', label: 'カテゴリ', type: 'select', options: ['pc','account','teams','permission','software'], required: true },
+      { key: 'priority', label: '優先度', type: 'select', options: ['high','medium','low'] },
+      { key: 'requester', label: '申請者', type: 'text' },
+    ],
+    defaults: { category: 'pc', status: 'pending', priority: 'medium' },
+  },
+};
+
+const SLAPill = ({ dueAt, resolvedAt }) => {
+  if (!dueAt) return <span style={{ color: 'var(--muted-2)', fontSize: 11.5 }}>—</span>;
+  const due = new Date(dueAt);
+  if (resolvedAt) return <Pill value={new Date(resolvedAt) <= due ? 'resolved' : 'critical'} />;
+  const remaining = due - new Date();
+  if (remaining < 0) return <span className="pill pill--danger"><span className="pill__dot" />超過</span>;
+  if (remaining < 2 * 3600000) return <span className="pill pill--warning"><span className="pill__dot" />注意</span>;
+  return <span className="pill pill--success"><span className="pill__dot" />安全</span>;
+};
+
+const ModuleView = ({ moduleKey }) => {
+  const cfg = MODULE_CONFIGS[moduleKey];
+  const [data, setData] = useState({ items: [], total: 0 });
+  const [loading, setLoading] = useState(true);
+  const [keyword, setKeyword] = useState('');
+  const [filters, setFilters] = useState({});
+  const [sortKey, setSortKey] = useState('');
+  const [sortDir, setSortDir] = useState('desc');
+  const [page, setPage] = useState(1);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editItem, setEditItem] = useState(null);
+  const [formData, setFormData] = useState({});
+  const [formErrors, setFormErrors] = useState({});
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [detailItem, setDetailItem] = useState(null);
+  const toast = useToast();
+  const pageSize = 10;
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = { ...filters, keyword: keyword || undefined, skip: (page - 1) * pageSize, limit: pageSize, sortKey, sortDir };
+      setData(await MockAPI.list(cfg.dataKey, params));
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  }, [cfg.dataKey, keyword, filters, page, sortKey, sortDir]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { setPage(1); setKeyword(''); setFilters({}); setSortKey(''); }, [moduleKey]);
+
+  const handleSort = key => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('desc'); }
+  };
+
+  const openCreate = () => { setEditItem(null); setFormData(cfg.defaults || {}); setFormErrors({}); setModalOpen(true); };
+  const openEdit = item => { setEditItem(item); setFormData({ ...item }); setFormErrors({}); setModalOpen(true); };
+
+  const handleSave = async () => {
+    const errs = {};
+    (cfg.formFields || []).forEach(f => { if (f.required && !formData[f.key]) errs[f.key] = '必須項目です'; });
+    if (Object.keys(errs).length) { setFormErrors(errs); return; }
+    if (editItem) { await MockAPI.update(cfg.dataKey, editItem.id, formData); toast(`${cfg.label}を更新しました`, 'success'); }
+    else { await MockAPI.create(cfg.dataKey, formData); toast(`${cfg.label}を登録しました`, 'success'); }
+    setModalOpen(false); loadData();
+  };
+
+  const handleDelete = async () => {
+    await MockAPI.remove(cfg.dataKey, deleteTarget.id);
+    toast('削除しました', 'success'); setDeleteTarget(null); loadData();
+  };
+
+  const kpis = cfg.kpis ? cfg.kpis(data) : [];
+
+  const renderField = f => {
+    const common = {
+      value: formData[f.key] || '',
+      onChange: e => setFormData(p => ({ ...p, [f.key]: e.target.value }))
+    };
+    if (f.type === 'textarea') return <textarea {...common} />;
+    if (f.type === 'select') return <select {...common}><option value="">選択してください</option>{f.options.map(o => { const v = typeof o === 'object' ? o.value : o; const l = typeof o === 'object' ? o.label : (LABELS[o] || o); return <option key={v} value={v}>{l}</option>; })}</select>;
+    if (f.type === 'date') return <input type="datetime-local" {...common} />;
+    if (f.type === 'number') return <input type="number" {...common} />;
+    return <input type="text" {...common} />;
+  };
+
+  return (
+    <div>
+      <div className="page-head" data-od-id={`${moduleKey}-head`}>
+        <div>
+          <h1>{cfg.label}</h1>
+          <div className="sub">{cfg.sub}</div>
+        </div>
+        <div className="page-head__actions">
+          <Btn variant="primary" icon="plus" onClick={openCreate}>新規作成</Btn>
+          <Btn variant="outline" icon="download" onClick={() => toast('CSV出力（デモ）', 'info')}>CSV</Btn>
+        </div>
+      </div>
+
+      {kpis.length > 0 && (
+        <div className="kpi-grid" style={{ gridTemplateColumns: `repeat(${Math.min(kpis.length, 4)}, minmax(0,1fr))` }}>
+          {kpis.map((k, i) => <KPI key={i} {...k} id={`${moduleKey}-kpi-${i}`} />)}
+        </div>
+      )}
+
+      <div className="filter-bar">
+        <SearchInput value={keyword} onChange={v => { setKeyword(v); setPage(1); }} placeholder={cfg.label + 'を検索...'} />
+        {(cfg.filters || []).map(f => (
+          <FilterSelect key={f.key} label={f.label} value={filters[f.key] || 'all'} options={f.options}
+            onChange={v => { setFilters(p => ({ ...p, [f.key]: v === 'all' ? undefined : v })); setPage(1); }} />
+        ))}
+        <span className="spacer" />
+        {(keyword || Object.values(filters).some(Boolean)) && <Btn variant="ghost" size="sm" onClick={() => { setKeyword(''); setFilters({}); setPage(1); }}>クリア</Btn>}
+      </div>
+
+      <DataTable
+        id={`${moduleKey}-table`}
+        columns={[...(cfg.columns || []), {
+          key: '_actions', label: '', render: (_, row) => (
+            <div className="td-actions" onClick={e => e.stopPropagation()}>
+              <button className="row-btn" aria-label="編集" onClick={() => openEdit(row)}><Icon name="edit" size={15} /></button>
+              <button className="row-btn row-btn--danger" aria-label="削除" onClick={() => setDeleteTarget(row)}><Icon name="trash" size={15} /></button>
+            </div>
+          )
+        }]}
+        data={data.items} loading={loading} sortKey={sortKey} sortDir={sortDir} onSort={handleSort}
+        onRowClick={row => setDetailItem(row)} emptyMsg={cfg.label + 'のデータがありません'}
+      />
+
+      <Pagination page={page} total={data.total} size={pageSize} onChange={setPage} />
+
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editItem ? cfg.label + ' 編集' : cfg.label + ' 新規作成'}
+        footer={<>
+          <Btn variant="outline" onClick={() => setModalOpen(false)}>キャンセル</Btn>
+          <Btn variant="primary" onClick={handleSave}>{editItem ? '更新' : '作成'}</Btn>
+        </>}>
+        <div className="form-grid">
+          {(cfg.formFields || []).map(f => (
+            <div key={f.key} className={`field ${f.full ? 'field--full' : ''}`}>
+              <label>{f.label}{f.required && <span className="req">*</span>}</label>
+              {renderField(f)}
+              {formErrors[f.key] && <span className="err">{formErrors[f.key]}</span>}
+            </div>
+          ))}
+        </div>
+      </Modal>
+
+      <ConfirmDialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete}
+        title="削除確認" message={`「${deleteTarget?.title || deleteTarget?.name || ''}」を削除しますか？この操作は取り消せません。`} confirmLabel="削除" danger />
+
+      <Modal open={!!detailItem} onClose={() => setDetailItem(null)} width={560}
+        title={(detailItem && (detailItem[cfg.ticketField] || detailItem.name || '')) + ' 詳細'}
+        footer={<>
+          <Btn variant="outline" icon="edit" onClick={() => { openEdit(detailItem); setDetailItem(null); }}>編集</Btn>
+          <Btn variant="primary" onClick={() => setDetailItem(null)}>閉じる</Btn>
+        </>}>
+        {detailItem && (
+          <dl className="dl">
+            {Object.entries(detailItem).filter(([k]) => k !== 'id').map(([k, v]) => (
+              <React.Fragment key={k}>
+                <dt>{k}</dt>
+                <dd>
+                  {['status','priority','severity','ci_type','asset_type','event_type','change_type','category','risk_level','patch_type'].includes(k) && v
+                    ? <Pill value={v} />
+                    : (typeof v === 'string' && v.match(/^\d{4}-/) ? fmtDate(v) : String(v ?? '—'))}
+                </dd>
+              </React.Fragment>
+            ))}
+          </dl>
+        )}
+      </Modal>
+    </div>
+  );
+};
+
+/* ============================================================
+   Special views: SLA / Realtime / Visualization / Automation / Settings
+   ============================================================ */
+const SLAView = () => {
+  const [data, setData] = useState({ items: [] });
+  useEffect(() => { MockAPI.list('incidents', { limit: 100 }).then(setData); }, []);
+  const items = data.items;
+  const resolved = items.filter(x => x.resolved_at);
+  const slaOk = resolved.filter(x => new Date(x.resolved_at) <= new Date(x.due_at)).length;
+  const rate = resolved.length ? Math.round(slaOk / resolved.length * 100) : 100;
+  const overdue = items.filter(x => !['resolved','closed'].includes(x.status) && x.due_at && new Date(x.due_at) < new Date());
+  const atRisk = items.filter(x => { if (['resolved','closed'].includes(x.status) || !x.due_at) return false; const r = new Date(x.due_at) - new Date(); return r > 0 && r < 2 * 3600000; });
+  const avgH = resolved.length ? resolved.reduce((s, x) => (new Date(x.resolved_at) - new Date(x.created_at)) / 3600000 + s, 0) / resolved.length : 0;
+
+  return (
+    <div>
+      <div className="page-head" data-od-id="sla-head">
+        <div>
+          <h1>SLA監視</h1>
+          <div className="sub">SLA遵守率・期限監視・リスク一覧</div>
+        </div>
+      </div>
+      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0,1fr))' }}>
+        <KPI id="sla-rate" icon="check" label="SLA遵守率" value={rate + '%'} tone={rate >= 90 ? 'success' : rate >= 70 ? 'warning' : 'danger'} />
+        <KPI id="sla-overdue" icon="alert" label="期限超過" value={overdue.length + '件'} tone="danger" />
+        <KPI id="sla-risk" icon="clock" label="リスク（2h以内）" value={atRisk.length + '件'} tone="warning" />
+        <KPI id="sla-avg" icon="hourglass" label="平均解決時間" value={avgH.toFixed(1) + 'h'} tone="info" />
+      </div>
+      <div className="card">
+        <div className="card__head"><h3>SLAリスク一覧</h3></div>
+        <div style={{ padding: '14px 18px' }}>
+          <DataTable id="sla-table" columns={[
+            { key: 'ticket_no', label: 'チケット', cls: 'td-id' },
+            { key: 'title', label: 'タイトル', cls: 'td-title' },
+            { key: 'priority', label: '優先度', render: v => <Pill value={v} /> },
+            { key: 'sla', label: 'SLA', render: (_, r) => <SLAPill dueAt={r.due_at} resolvedAt={r.resolved_at} /> },
+            { key: 'due_at', label: '期限', render: v => <span className="mono tnum td-muted">{fmtDate(v, true)}</span>, cls: 'td-nowrap' },
+          ]} data={[...overdue, ...atRisk]} emptyMsg="SLAリスクのチケットはありません" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const RealtimeView = () => {
+  const [tick, setTick] = useState(0);
+  useEffect(() => { const t = setInterval(() => setTick(p => p + 1), 5000); return () => clearInterval(t); }, []);
+  const systems = [
+    { name: 'Microsoft 365', status: 'operational', latency: '45ms', uptime: '99.97%' },
+    { name: 'VPN Gateway', status: 'degraded', latency: '220ms', uptime: '99.2%' },
+    { name: 'Active Directory', status: 'operational', latency: '12ms', uptime: '99.99%' },
+    { name: 'ファイルサーバ', status: 'operational', latency: '8ms', uptime: '99.95%' },
+    { name: 'メールサーバ (Exchange)', status: 'operational', latency: '65ms', uptime: '99.9%' },
+    { name: 'CADライセンスサーバ', status: 'incident', latency: '—', uptime: '98.5%' },
+    { name: 'プリントサーバ', status: 'operational', latency: '15ms', uptime: '99.8%' },
+    { name: '監視 (Zabbix)', status: 'operational', latency: '30ms', uptime: '99.99%' },
+  ];
+  const dotColor = { operational: 'var(--success)', degraded: 'var(--warning)', incident: 'var(--danger)' };
+
+  return (
+    <div>
+      <div className="page-head" data-od-id="realtime-head">
+        <div>
+          <h1>リアルタイム監視</h1>
+          <div className="sub">システム稼働状況のリアルタイム表示</div>
+        </div>
+        <div className="page-head__actions">
+          <span className="demo-note"><span className="pill__dot" style={{ background: 'var(--success)' }} />自動更新中 · 最終 {new Date().toLocaleTimeString('ja-JP')}</span>
+        </div>
+      </div>
+      <div className="rt-grid">
+        {systems.map(s => (
+          <div key={s.name} className="rt-card" data-od-id={`rt-${s.name}`}>
+            <span className="rt-dot rt-dot--pulse" style={{ background: dotColor[s.status], color: dotColor[s.status] }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 600, fontSize: 13 }}>{s.name}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--muted-2)', marginTop: 3, display: 'flex', gap: 14 }}>
+                <span className="mono">レイテンシ {s.latency}</span>
+                <span className="mono">稼働率 {s.uptime}</span>
+              </div>
+            </div>
+            <Pill value={s.status} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const VisualizationView = () => {
+  const maps = [
+    { name: 'サービスマップ', target: 'M365 / VPN / CAD', source: 'CMDB', status: '最新' },
+    { name: '現場NW図', target: '現場A / 現場B', source: 'NW台帳', status: '要更新' },
+    { name: '障害影響マップ', target: '全サービス', source: 'CMDB依存関係', status: '最新' },
+    { name: 'M365依存関係', target: 'Teams / SPO / OD', source: 'Entra ID', status: '最新' },
+    { name: 'プロセス対応表', target: '申請 / 設計 / 施工', source: '業務棚卸', status: '作成中' },
+  ];
+  return (
+    <div>
+      <div className="page-head" data-od-id="viz-head">
+        <div>
+          <h1>統合可視化</h1>
+          <div className="sub">サービスマップ・影響図・ネットワーク図</div>
+        </div>
+      </div>
+      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0,1fr))' }}>
+        <KPI id="viz-maps" icon="map" label="可視化マップ" value="5種" tone="info" />
+        <KPI id="viz-impact" icon="activity" label="影響サービス" value="12件" tone="warning" />
+        <KPI id="viz-unlinked" icon="zap" label="未紐付けCI" value="7件" tone="danger" />
+      </div>
+      <div className="card">
+        <div className="card__head"><h3>可視化マップ一覧</h3></div>
+        <div style={{ padding: '14px 18px' }}>
+          <DataTable id="viz-table" columns={[
+            { key: 'name', label: 'マップ', render: v => <span style={{ fontWeight: 500 }}>{v}</span> },
+            { key: 'target', label: '対象', cls: 'td-muted' },
+            { key: 'source', label: '更新元', cls: 'td-muted' },
+            { key: 'status', label: '鮮度', render: v => <Pill value={v === '最新' ? 'published' : v === '要更新' ? 'review' : 'draft'} /> },
+          ]} data={maps} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const AutomationView = () => {
+  const toast = useToast();
+  const rules = [
+    { id: 1, name: 'SLA期限30分前通知', trigger: 'SLA期限30分前', action: 'Teams通知 + チケット更新', enabled: true },
+    { id: 2, name: 'VPN失敗検知', trigger: 'VPN失敗10回以上', action: 'ログ収集 + Security起票', enabled: true },
+    { id: 3, name: '印刷キュー自動復旧', trigger: 'キュー滞留30分', action: 'スプーラ再起動', enabled: true },
+    { id: 4, name: 'ディスク容量警告', trigger: 'C: 90%超過', action: '一時ファイル削除 + Teams通知', enabled: false },
+    { id: 5, name: 'サービス自動再起動', trigger: '応答タイムアウト', action: 'サービス再起動（3回まで）', enabled: true },
+  ];
+  return (
+    <div>
+      <div className="page-head" data-od-id="auto-head">
+        <div>
+          <h1>Automation / AIOps</h1>
+          <div className="sub">自動復旧・Teams通知・AI分析</div>
+        </div>
+        <div className="page-head__actions">
+          <Btn variant="primary" icon="plus" onClick={() => toast('ルール新規作成（デモ）', 'info')}>ルール追加</Btn>
+        </div>
+      </div>
+      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0,1fr))' }}>
+        <KPI id="auto-rules" icon="zap" label="自動化ルール" value={rules.length + '本'} tone="info" />
+        <KPI id="auto-tickets" icon="ticket" label="自動チケット化" value="7件" sub="今月" tone="success" />
+        <KPI id="auto-save" icon="clock" label="手作業削減" value="18h" sub="月間見込み" tone="accent" />
+      </div>
+      <div className="card">
+        <div className="card__head"><h3>自動化ルール一覧</h3></div>
+        <div style={{ padding: '14px 18px' }}>
+          <DataTable id="auto-table" columns={[
+            { key: 'name', label: 'ルール名', render: v => <span style={{ fontWeight: 500 }}>{v}</span> },
+            { key: 'trigger', label: 'トリガー', cls: 'td-muted' },
+            { key: 'action', label: '動作', cls: 'td-muted' },
+            { key: 'enabled', label: '状態', render: v => <Pill value={v ? 'active' : 'closed'} /> },
+          ]} data={rules} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SettingsView = ({ isDark, onToggleDark }) => {
+  const toast = useToast();
+  const row = (label, desc, action) => (
+    <div className="setting-row">
+      <div style={{ minWidth: 0 }}>
+        <div className="sr-label">{label}</div>
+        {desc && <div className="sr-desc">{desc}</div>}
+      </div>
+      {action}
+    </div>
+  );
+  return (
+    <div>
+      <div className="page-head" data-od-id="settings-head">
+        <div>
+          <h1>システム設定</h1>
+          <div className="sub">ITSM Management 全体設定</div>
+        </div>
+      </div>
+
+      <div className="grid-2-eq">
+        <div className="card">
+          <div className="card__head"><h3>表示設定</h3></div>
+          <div className="card__body" style={{ paddingTop: 4, paddingBottom: 4 }}>
+            {row('ダークモード', 'UIのテーマを暗色に切り替えます', <Btn variant={isDark ? 'primary' : 'outline'} size="sm" onClick={onToggleDark}>{isDark ? 'ON' : 'OFF'}</Btn>)}
+          </div>
+        </div>
+        <div className="card">
+          <div className="card__head"><h3>SLA設定</h3></div>
+          <div className="card__body" style={{ paddingTop: 4, paddingBottom: 4 }}>
+            {row('緊急SLA', 'Critical優先度の対応期限', <span className="sr-value">2時間</span>)}
+            {row('高SLA', 'High優先度の対応期限', <span className="sr-value">4時間</span>)}
+            {row('中SLA', 'Medium優先度の対応期限', <span className="sr-value">8時間</span>)}
+            {row('低SLA', 'Low優先度の対応期限', <span className="sr-value">24時間</span>)}
+            {row('営業時間', '開始 / 終了', <span className="sr-value">09:00 – 18:00</span>)}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid-2-eq">
+        <div className="card">
+          <div className="card__head"><h3>通知設定</h3></div>
+          <div className="card__body" style={{ paddingTop: 4, paddingBottom: 4 }}>
+            {row('メール通知', 'SLA違反・Critical障害時のメール通知', <Btn variant="primary" size="sm" onClick={() => toast('メール通知をOFFにしました', 'info')}>ON</Btn>)}
+            {row('Teams通知', 'チャネルへの自動投稿', <Btn variant="outline" size="sm" onClick={() => toast('Teams通知をONにしました', 'success')}>OFF</Btn>)}
+            {row('承認待ち通知', '変更管理・サービス要求の承認待ちアラート', <Btn variant="primary" size="sm" onClick={() => toast('承認通知をOFFにしました', 'info')}>ON</Btn>)}
+          </div>
+        </div>
+        <div className="card">
+          <div className="card__head"><h3>データ管理</h3></div>
+          <div className="card__body" style={{ paddingTop: 4, paddingBottom: 4 }}>
+            {row('フィルター初期化', '全画面のフィルターと検索条件をリセット', <Btn variant="outline" size="sm" onClick={() => toast('フィルターを初期化しました', 'success')}>初期化</Btn>)}
+            {row('設定エクスポート', '現在の設定をJSONでダウンロード', <Btn variant="outline" size="sm" onClick={() => toast('JSONエクスポート（デモ）', 'info')}>エクスポート</Btn>)}
+            {row('サンプルデータリセット', 'モックデータを初期状態に戻す', <Btn variant="danger" size="sm" onClick={() => location.reload()}>リセット</Btn>)}
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card__head"><h3>ユーザー・ロール管理</h3><Pill value="admin" /></div>
+        <div style={{ padding: '14px 18px' }}>
+          <p className="demo-note" style={{ marginBottom: 12 }}>管理者のみ操作可能です。RBACに基づいたロール割当を行います。</p>
+          <DataTable id="user-table" columns={[
+            { key: 'display_name', label: '氏名', render: v => <span style={{ fontWeight: 500 }}>{v}</span> },
+            { key: 'email', label: 'メール', cls: 'td-muted' },
+            { key: 'role', label: 'ロール', render: v => <Pill value={v} /> },
+            { key: 'department', label: '部署', cls: 'td-muted' },
+            { key: '_actions', label: '', render: (_, row) => (
+              <div className="td-actions" onClick={e => e.stopPropagation()}>
+                <button className="row-btn" aria-label="編集" onClick={() => toast(row.display_name + 'のロール編集（デモ）', 'info')}><Icon name="edit" size={15} /></button>
+              </div>
+            ) },
+          ]} data={window.ITSM_USERS || []} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ============================================================
+   App
+   ============================================================ */
+const App = () => {
+  const [isDark, setIsDark] = useState(() => localStorage.getItem('itsm-dark') === 'true');
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('itsm-collapsed') === 'true');
+  const [activeView, setActiveView] = useState(() => localStorage.getItem('itsm-view') || 'dashboard');
+
+  useEffect(() => { document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light'); localStorage.setItem('itsm-dark', isDark); }, [isDark]);
+  useEffect(() => { localStorage.setItem('itsm-collapsed', collapsed); }, [collapsed]);
+  useEffect(() => { localStorage.setItem('itsm-view', activeView); }, [activeView]);
+
+  const navigate = useCallback(view => {
+    setActiveView(view);
+    const main = document.getElementById('itsm-main');
+    if (main) main.scrollTop = 0;
+  }, []);
+
+  const title = useMemo(() => {
+    if (activeView === 'dashboard') return 'ダッシュボード';
+    if (activeView === 'system-settings') return 'システム設定';
+    const cfg = MODULE_CONFIGS[activeView];
+    if (cfg) return cfg.label;
+    const flat = NAV_SECTIONS.flatMap(s => s.items);
+    const nav = flat.find(i => i.key === activeView);
+    return nav ? nav.label : 'ITSM Management';
+  }, [activeView]);
+
+  const renderView = () => {
+    switch (activeView) {
+      case 'dashboard': return <DashboardView onNewIncident={() => navigate('incidents')} />;
+      case 'sla': return <SLAView />;
+      case 'realtime': return <RealtimeView />;
+      case 'visualization': return <VisualizationView />;
+      case 'automation': return <AutomationView />;
+      case 'system-settings': return <SettingsView isDark={isDark} onToggleDark={() => setIsDark(p => !p)} />;
+      default:
+        if (MODULE_CONFIGS[activeView]) return <ModuleView key={activeView} moduleKey={activeView} />;
+        return <div className="page-head"><h1>準備中</h1><div className="sub">このモジュールは開発中です</div></div>;
+    }
+  };
+
+  return (
+    <ToastProvider>
+      <div className="app">
+        <Sidebar activeView={activeView} onNavigate={navigate} collapsed={collapsed} />
+        <div className="main">
+          <Header
+            title={title}
+            isDark={isDark}
+            onToggleDark={() => setIsDark(p => !p)}
+            collapsed={collapsed}
+            onToggleCollapse={() => setCollapsed(p => !p)}
+          />
+          <main id="itsm-main" className="content" role="main">
+            {renderView()}
+          </main>
+        </div>
+      </div>
+    </ToastProvider>
+  );
+};
+
+const rootEl = document.getElementById('root');
+const root = ReactDOM.createRoot(rootEl);
+root.render(<App />);
+</script>
+</body>
+</html>

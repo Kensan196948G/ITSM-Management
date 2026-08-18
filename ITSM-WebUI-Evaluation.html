@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ITSM-Management WebUI 評価 & ベストプラクティス</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="deck-stage.js"></script>
+<style>
+  :root {
+    --c-bg: #0B0F1A;
+    --c-surface: #141929;
+    --c-surface-2: #1C2237;
+    --c-border: #2A3150;
+    --c-text: #E8ECF4;
+    --c-text-dim: #8892B0;
+    --c-accent: #64FFDA;
+    --c-accent-2: #7B61FF;
+    --c-warn: #FF6B6B;
+    --c-good: #64FFDA;
+    --c-mid: #FFD93D;
+    --c-blue: #5B9CF6;
+    --c-pink: #FF79C6;
+    --font-sans: 'Noto Sans JP', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  deck-stage { --deck-bg: var(--c-bg); }
+
+  section {
+    width: 1920px;
+    height: 1080px;
+    background: var(--c-bg);
+    color: var(--c-text);
+    font-family: var(--font-sans);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Shared decorations */
+  .grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(100,255,218,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(100,255,218,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+  }
+
+  .glow-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.15;
+    pointer-events: none;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-family: var(--font-mono);
+  }
+
+  .tag-accent  { background: rgba(100,255,218,0.12); color: var(--c-accent); border: 1px solid rgba(100,255,218,0.25); }
+  .tag-warn    { background: rgba(255,107,107,0.12); color: var(--c-warn);   border: 1px solid rgba(255,107,107,0.25); }
+  .tag-blue    { background: rgba(91,156,246,0.12);  color: var(--c-blue);   border: 1px solid rgba(91,156,246,0.25); }
+  .tag-purple  { background: rgba(123,97,255,0.12);  color: var(--c-accent-2); border: 1px solid rgba(123,97,255,0.25); }
+  .tag-mid     { background: rgba(255,217,61,0.12);  color: var(--c-mid);    border: 1px solid rgba(255,217,61,0.25); }
+
+  h1 { font-weight: 900; line-height: 1.1; letter-spacing: -0.02em; }
+  h2 { font-weight: 700; line-height: 1.15; letter-spacing: -0.01em; }
+  h3 { font-weight: 600; line-height: 1.25; }
+
+  .slide-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 56px 80px 0;
+  }
+
+  .slide-header h2 {
+    font-size: 44px;
+    color: var(--c-text);
+  }
+
+  .slide-body {
+    flex: 1;
+    padding: 40px 80px 56px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  /* Card system */
+  .card-grid {
+    display: grid;
+    gap: 20px;
+  }
+
+  .card {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: 16px;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  .card-warn::before   { background: linear-gradient(90deg, var(--c-warn), transparent); }
+  .card-good::before   { background: linear-gradient(90deg, var(--c-good), transparent); }
+  .card-blue::before   { background: linear-gradient(90deg, var(--c-blue), transparent); }
+  .card-purple::before { background: linear-gradient(90deg, var(--c-accent-2), transparent); }
+  .card-mid::before    { background: linear-gradient(90deg, var(--c-mid), transparent); }
+
+  .card h3 {
+    font-size: 22px;
+    margin-bottom: 12px;
+  }
+
+  .card p, .card li {
+    font-size: 18px;
+    color: var(--c-text-dim);
+    line-height: 1.65;
+  }
+
+  .card ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .card li::before {
+    content: '›';
+    margin-right: 10px;
+    font-weight: 700;
+    color: var(--c-accent);
+  }
+
+  /* Score gauge */
+  .score-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 10px;
+  }
+
+  .score-bar {
+    flex: 1;
+    height: 10px;
+    background: var(--c-surface-2);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .score-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.6s ease;
+  }
+
+  .score-label {
+    font-size: 15px;
+    font-family: var(--font-mono);
+    min-width: 110px;
+    color: var(--c-text-dim);
+  }
+
+  .score-val {
+    font-size: 18px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    min-width: 56px;
+    text-align: right;
+  }
+
+  /* Code block */
+  .code-block {
+    background: #0D1117;
+    border: 1px solid var(--c-border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    font-family: var(--font-mono);
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--c-text-dim);
+    overflow: hidden;
+    white-space: pre-wrap;
+  }
+
+  .code-block .kw  { color: var(--c-pink); }
+  .code-block .fn  { color: var(--c-blue); }
+  .code-block .str { color: var(--c-accent); }
+  .code-block .cmt { color: #4A5568; font-style: italic; }
+  .code-block .num { color: var(--c-mid); }
+
+  /* Comparison table */
+  .comp-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 18px;
+  }
+
+  .comp-table th {
+    text-align: left;
+    padding: 16px 20px;
+    background: var(--c-surface-2);
+    color: var(--c-text-dim);
+    font-weight: 600;
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .comp-table th:first-child { border-radius: 12px 0 0 0; }
+  .comp-table th:last-child  { border-radius: 0 12px 0 0; }
+
+  .comp-table td {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--c-border);
+    color: var(--c-text);
+    vertical-align: top;
+  }
+
+  .comp-table tr:last-child td { border-bottom: none; }
+
+  .comp-table .label-col {
+    color: var(--c-text-dim);
+    font-weight: 500;
+    width: 200px;
+  }
+
+  .icon-good { color: var(--c-good); }
+  .icon-warn { color: var(--c-warn); }
+  .icon-mid  { color: var(--c-mid); }
+
+  /* Architecture diagram */
+  .arch-box {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: 12px;
+    padding: 20px 28px;
+    text-align: center;
+    font-size: 17px;
+    font-weight: 500;
+    position: relative;
+  }
+
+  .arch-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--c-accent);
+    font-size: 28px;
+    padding: 8px 0;
+  }
+
+  /* Number circle */
+  .num-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    flex-shrink: 0;
+  }
+
+  .footer-line {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--c-accent), var(--c-accent-2), var(--c-pink));
+  }
+</style>
+</head>
+<body>
+<deck-stage>
+
+<!-- ====== SLIDE 01: Title ====== -->
+<section data-screen-label="01 Title">
+  <div class="grid-bg"></div>
+  <div class="glow-orb" style="width:600px;height:600px;background:var(--c-accent);top:-200px;right:-100px;"></div>
+  <div class="glow-orb" style="width:500px;height:500px;background:var(--c-accent-2);bottom:-200px;left:-100px;"></div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 100px;gap:32px;position:relative;">
+    <div style="display:flex;gap:12px;">
+      <span class="tag tag-accent">Technical Review</span>
+      <span class="tag tag-purple">May 2026</span>
+    </div>
+    <h1 style="font-size:72px;max-width:1200px;">
+      ITSM-Management<br>
+      <span style="background:linear-gradient(135deg,var(--c-accent),var(--c-blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">WebUI 評価 &amp; ベストプラクティス</span>
+    </h1>
+    <p style="font-size:24px;color:var(--c-text-dim);max-width:900px;line-height:1.6;">
+      FastAPI + Vanilla JS SPA アーキテクチャの現状分析、課題の特定、<br>およびプロダクション品質に向けた改善提案
+    </p>
+    <div style="display:flex;gap:24px;margin-top:16px;font-size:16px;color:var(--c-text-dim);font-family:var(--font-mono);">
+      <span>📦 Repository: Kensan196948G/ITSM-Management</span>
+      <span style="color:var(--c-border);">|</span>
+      <span>⚙️ FastAPI 0.115 + SQLAlchemy 2.0</span>
+      <span style="color:var(--c-border);">|</span>
+      <span>🎨 Vanilla JS SPA (4,600 lines)</span>
+    </div>
+  </div>
+  <div class="footer-line"></div>
+</section>
+
+<!-- ====== SLIDE 02: Agenda ====== -->
+<section data-screen-label="02 Agenda">
+  <div class="grid-bg"></div>
+  <div class="slide-header">
+    <span class="tag tag-blue">Overview</span>
+    <h2>アジェンダ</h2>
+  </div>
+  <div class="slide-body" style="justify-content:center;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:1400px;">
+      <div class="card card-good" style="display:flex;align-items:center;gap:24px;">
+        <div class="num-circle" style="background:rgba(100,255,218,0.15);color:var(--c-accent);">01</div>
+        <div><h3 style="font-size:24px;margin-bottom:4px;">プロジェクト概観</h3><p style="font-size:16px;">アーキテクチャと技術スタックの全体像</p></div>
+      </div>
+      <div class="card card-warn" style="display:flex;align-items:center;gap:24px;">
+        <div class="num-circle" style="background:rgba(255,107,107,0.15);color:var(--c-warn);">02</div>
+        <div><h3 style="font-size:24px;margin-bottom:4px;">現状の課題分析</h3><p style="font-size:16px;">フロントエンド・バックエンド両面の問題点</p></div>
+      </div>
+      <div class="card card-blue" style="display:flex;align-items:center;gap:24px;">
+        <div class="num-circle" style="background:rgba(91,156,246,0.15);color:var(--c-blue);">03</div>
+        <div><h3 style="font-size:24px;margin-bottom:4px;">評価スコアカード</h3><p style="font-size:16px;">8つの観点からの定量評価</p></div>
+      </div>
+      <div class="card card-purple" style="display:flex;align-items:center;gap:24px;">
+        <div class="num-circle" style="background:rgba(123,97,255,0.15);color:var(--c-accent-2);">04</div>
+        <div><h3 style="font-size:24px;margin-bottom:4px;">ベストプラクティス提案</h3><p style="font-size:16px;">短期・中期・長期の改善ロードマップ</p></div>
+      </div>
+      <div class="card card-mid" style="display:flex;align-items:center;gap:24px;">
+        <div class="num-circle" style="background:rgba(255,217,61,0.15);color:var(--c-mid);">05</div>
+        <div><h3 style="font-size:24px;margin-bottom:4px;">UIリデザイン方針</h3><p style="font-size:16px;">フロントエンドの構造・UX改善案</p></div>
+      </div>
+      <div class="card card-good" style="display:flex;align-items:center;gap:24px;">
+        <div class="num-circle" style="background:rgba(100,255,218,0.15);color:var(--c-accent);">06</div>
+        <div><h3 style="font-size:24px;margin-bottom:4px;">アクションプラン</h3><p style="font-size:16px;">優先度付きの実装計画</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-line"></div>
+</section>
+
+<!-- ====== SLIDE 03: Architecture Overview ====== -->
+<section data-screen-label="03 Architecture">
+  <div class="grid-bg"></div>
+  <div class="slide-header">
+    <span class="tag tag-accent">Architecture</span>
+    <h2>現行アーキテクチャ概観</h2>
+  </div>
+  <div class="slide-body">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;">
+      <!-- Left: Architecture diagram -->
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="arch-box" style="border-color:var(--c-accent);background:rgba(100,255,218,0.05);">
+          <div style="font-size:14px;color:var(--c-accent);margin-bottom:4px;font-family:var(--font-mono);">FRONTEND</div>
+          <div style="font-size:20px;font-weight:700;">Vanilla JS SPA — 単一HTML (4,602行)</div>
+          <div style="font-size:14px;color:var(--c-text-dim);margin-top:6px;">CSS / JS / HTML すべてインライン</div>
+        </div>
+        <div class="arch-arrow">↕ REST API + JWT</div>
+        <div class="arch-box" style="border-color:var(--c-blue);background:rgba(91,156,246,0.05);">
+          <div style="font-size:14px;color:var(--c-blue);margin-bottom:4px;font-family:var(--font-mono);">BACKEND</div>
+          <div style="font-size:20px;font-weight:700;">FastAPI 0.115 + Uvicorn</div>
+          <div style="font-size:14px;color:var(--c-text-dim);margin-top:6px;">15 Routers / 14 Services / Pydantic v2</div>
+        </div>
+        <div class="arch-arrow">↕ SQLAlchemy ORM</div>
+        <div class="arch-box" style="border-color:var(--c-accent-2);background:rgba(123,97,255,0.05);">
+          <div style="font-size:14px;color:var(--c-accent-2);margin-bottom:4px;font-family:var(--font-mono);">DATABASE</div>
+          <div style="font-size:20px;font-weight:700;">SQLite → PostgreSQL（移行予定）</div>
+          <div style="font-size:14px;color:var(--c-text-dim);margin-top:6px;">Alembic マイグレーション対応</div>
+        </div>
+      </div>
+      <!-- Right: Key stats -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card card-good">
+          <h3 style="color:var(--c-accent);">✅ 良い点</h3>
+          <ul>
+            <li>14の管理領域をカバーする包括的な設計</li>
+            <li>ITIL準拠のワークフロー設計</li>
+            <li>JWT + RBAC による認証・認可</li>
+            <li>監査ログによる全操作追跡</li>
+            <li>SLA自動計算（営業日・祝日考慮）</li>
+          </ul>
+        </div>
+        <div class="card card-warn">
+          <h3 style="color:var(--c-warn);">⚠️ 懸念点</h3>
+          <ul>
+            <li>単一HTMLファイルに4,602行を集約</li>
+            <li>フレームワーク未使用のDOM操作</li>
+            <li>フロント・バック間のスキーマ不整合</li>
+            <li>エラーハンドリングの不統一</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-line"></div>
+</section>
+
+<!-- ====== SLIDE 04: Frontend Issues ====== -->
+<section data-screen-label="04 Frontend Issues">
+  <div class="grid-bg"></div>
+  <div class="slide-header">
+    <span class="tag tag-warn">Critical Issues</span>
+    <h2>フロントエンド課題分析</h2>
+  </div>
+  <div class="slide-body">
+    <div class="card-grid" style="grid-template-columns:1fr 1fr;flex:1;">
+      <div class="card card-warn">
+        <h3>🏗️ 単一ファイル肥大化</h3>
+        <p style="margin-bottom:12px;">240KB / 4,602行のHTMLファイルにCSS・JS・テンプレートがすべて内包。保守性・テスト性が極めて低い。</p>
+        <div class="code-block" style="font-size:14px;">
+<span class="cmt">// 現状: innerHTML による巨大な文字列連結</span>
+kpiEl.<span class="fn">innerHTML</span> = <span class="str">'&lt;div class="detail-card"&gt;&lt;h3&gt;'</span>
+  + <span class="str">'総チケット&lt;/h3&gt;'</span>
+  + <span class="str">'&lt;div style="font-size:1.8rem"&gt;'</span>
+  + <span class="fn">esc</span>(total) + <span class="str">'件&lt;/div&gt;'</span></div>
+      </div>
+      <div class="card card-warn">
+        <h3>🔀 状態管理の欠如</h3>
+        <p style="margin-bottom:12px;">グローバルな state オブジェクトを直接操作。変更検知なし、再描画はフル再レンダリング。</p>
+        <ul>
+          <li>localStorage に全 state を JSON 保存</li>
+          <li>API データとローカルデータの二重管理</li>
+          <li>showView() 呼出しごとに DOM 全体を再構築</li>
+          <li>画面遷移時に scroll 位置がリセット</li>
+        </ul>
+      </div>
+      <div class="card card-warn">
+        <h3>🎨 CSS 設計の問題</h3>
+        <p style="margin-bottom:12px;">約1,300行のインラインCSS。ダークモードはセレクタの羅列で管理。</p>
+        <ul>
+          <li>CSS変数の不使用（色値がハードコード）</li>
+          <li>dark-mode で50以上のセレクタを上書き</li>
+          <li>レスポンシブ対応が不十分</li>
+          <li>アニメーション・トランジションが最小限</li>
+        </ul>
+      </div>
+      <div class="card card-warn">
+        <h3>♿ アクセシビリティ</h3>
+        <p style="margin-bottom:12px;">WAI-ARIA 属性がほぼ未使用。キーボードナビゲーション非対応。</p>
+        <ul>
+          <li>role / aria-label / aria-live 未設定</li>
+          <li>絵文字をアイコン代わりに使用（スクリーンリーダー問題）</li>
+          <li>フォーカス管理なし（モーダル含む）</li>
+          <li>カラーコントラスト未検証</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="footer-line"></div>
+</section>
+
+<!-- ====== SLIDE 05: Backend Issues ====== -->
+<section data-screen-label="05 Backend Issues">
+  <div class="grid-bg"></div>
+  <div class="slide-header">
+    <span class="tag tag-mid">Backend</span>
+    <h2>バックエンド課題分析</h2>
+  </div>
+  <div class="slide-body">
+    <div class="card-grid" style="grid-template-columns:1fr 1fr;flex:1;">
+      <div class="card card-good">
+        <h3 style="color:var(--c-accent);">✅ 優れている設計</h3>
+        <ul>
+          <li>Router → Service → ORM の3層分離</li>
+          <li>Pydantic v2 による入出力バリデーション</li>
+          <li>監査ログが全CRUDに組み込み済み</li>
+          <li>SLA計算が営業日・祝日を考慮</li>
+          <li>チケット番号の自動採番（INC-YYYY-NNNN）</li>
+          <li>124件のユニットテスト</li>
+        </ul>
+      </div>
+      <div class="card card-mid">
+        <h3 style="color:var(--c-mid);">⚡ 改善が必要な領域</h3>
+        <ul>
+          <li>エラーレスポンスのフォーマットが不統一</li>
+          <li>ページネーションが skip/limit 方式のみ</li>
+          <li>N+1 クエリ問題（relationship の lazy load）</li>
+          <li>Rate Limiting 未実装</li>
+          <li>バリデーションエラーの日本語化未対応</li>
+          <li>CORS 設定が allow_methods=["*"]</li>
+        </ul>
+      </div>
+      <div class="card card-warn">
+        <h3 style="color:var(--c-warn);">🔐 セキュリティ懸念</h3>
+        <ul>
+          <li>JWT の secret_key が .env 依存（デフォルト値リスク）</li>
+          <li>Refresh Token 未実装（8時間固定）</li>
+          <li>ログイン試行回数制限なし</li>
+          <li>CSRF 対策が未実装</li>
+          <li>ファイルアップロードのバリデーション不足</li>
+        </ul>
+      </div>
+      <div class="card card-blue">
+        <h3 style="color:var(--c-blue);">📊 テストカバレッジ</h3>
+        <p style="margin-bottom:12px;">124テストは良い出発点だが、以下が不足：</p>
+        <ul>
+          <li>E2Eテスト（13シナリオのみ）</li>
+          <li>エッジケースのバリデーションテスト</li>
+          <li>並行処理・レースコンディション</li>
+          <li>パフォーマンス / 負荷テスト</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="footer-line"></div>
+</section>
+
+<!-- ====== SLIDE 06: Score Card ====== -->
+<section data-screen-label="06 Score Card">
+  <div class="grid-bg"></div>
+  <div class="glow-orb" style="width:400px;height:400px;background:var(--c-accent-2);top:100px;right:-100px;"></div>
+  <div class="slide-header">
+    <span class="tag tag-purple">Evaluation</span>
+    <h2>総合評価スコアカード</h2>
+  </div>
+  <div class="slide-body">
+    <div style="display:grid;grid-template-columns:1.2fr 0.8fr;gap:40px;flex:1;">
+      <div style="display:flex;flex-direction:column;gap:18px;">
+        <div class="score-row">
+          <span class="score-label">機能カバレッジ</span>
+          <div class="score-bar"><div class="score-fill" style="width:85%;background:var(--c-good);"></div></div>
+          <span class="score-val" style="color:var(--c-good);">85</span>
+        </div>
+        <div class="score-row">
+          <span class="score-label">API 設計</span>
+          <div class="score-bar"><div class="score-fill" style="width:75%;background:var(--c-good);"></div></div>
+          <span class="score-val" style="color:var(--c-good);">75</span>
+        </div>
+        <div class="score-row">
+          <span class="score-label">バックエンド品質</span>
+          <div class="score-bar"><div class="score-fill" style="width:70%;background:var(--c-mid);"></div></div>
+          <span class="score-val" style="color:var(--c-mid);">70</span>
+        </div>
+        <div class="score-row">
+          <span class="score-label">テスト充実度</span>
+          <div class="score-bar"><div class="score-fill" style="width:60%;background:var(--c-mid);"></div></div>
+          <span class="score-val" style="color:var(--c-mid);">60</span>
+        </div>
+        <div class="score-row">
+          <span class="score-label">UI/UX 品質</span>
+          <div class="score-bar"><div class="score-fill" style="width:40%;background:var(--c-warn);"></div></div>
+          <span class="score-val" style="color:var(--c-warn);">40</span>
+        </div>
+        <div class="score-row">
+          <span class="score-label">フロント設計</span>
+          <div class="score-bar"><div class="score-fill" style="width:30%;background:var(--c-warn);"></div></div>
+          <span class="score-val" style="color:var(--c-warn);">30</span>
+        </div>
+        <div class="score-row">
+          <span class="score-label">アクセシビリティ</span>
+          <div class="score-bar"><div class="score-fill" style="width:20%;background:var(--c-warn);"></div></div>
+          <span class="score-val" style="color:var(--c-warn);">20</span>
+        </div>
+        <div class="score-row">
+          <span class="score-label">セキュリティ</span>
+          <div class="score-bar"><div class="score-fill" style="width:50%;background:var(--c-mid);"></div></div>
+          <span class="score-val" style="color:var(--c-mid);">50</span>
+        </div>
+        <div style="margin-top:12px;padding-top:16px;border-top:1px solid var(--c-border);display:flex;align-items:center;gap:16px;">
+          <span style="font-size:18px;color:var(--c-text-dim);font-weight:600;">総合スコア</span>
+          <span style="font-size:48px;font-weight:900;font-family:var(--font-mono);background:linear-gradient(135deg,var(--c-mid),var(--c-warn));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">54 / 100</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card card-good" style="padding:24px;">
+          <h3 style="font-size:18px;color:var(--c-accent);margin-bottom:8px;">強み</h3>
+          <p style="font-size:16px;">ITIL準拠の14管理領域の包括的な設計。バックエンドの3層アーキテクチャは堅実。監査ログの全操作組み込みは特に優秀。</p>
+        </div>
+        <div class="card card-warn" style="padding:24px;">
+          <h3 style="font-size:18px;color:var(--c-warn);margin-bottom:8px;">最大の課題</h3>
+          <p style="font-size:16px;">フロントエンドの単一ファイル肥大化が保守性・テスト性・パフォーマンスのボトルネック。リファクタリングが急務。</p>
+        </div>
+        <div class="card card-blue" style="padding:24px;">
+          <h3 style="font-size:18px;color:var(--c-blue);margin-bottom:8px;">判定</h3>
+          <p style="font-size:16px;">プロトタイプとしては十分な機能を実現しているが、プロダクション投入にはフロントの全面刷新が必要。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-line"></div>
+</section>
+
+<!-- ====== SLIDE 07: Best Practice — Frontend ====== -->
+<section data-screen-label="07 BP Frontend">
+  <div class="grid-bg"></div>
+  <div class="slide-header">
+    <span class="tag tag-accent">Best Practice #1</span>
+    <h2>フロントエンド刷新</h2>
+  </div>
+  <div class="slide-body">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;flex:1;">
+      <div class="card card-warn" style="display:flex;flex-direction:column;">
+        <h3 style="color:var(--c-warn);margin-bottom:16px;">❌ 現状 (As-Is)</h3>
+        <div class="code-block" style="font-size:14px;flex:1;">
+<span class="cmt">// 単一ファイル SPA — 全4,602行</span>
+<span class="cmt">// innerHTML 文字列連結でビュー構築</span>
+
+<span class="kw">function</span> <span class="fn">renderIncidentManagementView</span>() {
+  <span class="kw">return</span> <span class="str">`
+    &lt;nav class="breadcrumb"&gt;...&lt;/nav&gt;
+    &lt;div class="detail-hero"&gt;
+      &lt;h2&gt;📋 インシデント管理&lt;/h2&gt;
+      ...
+    &lt;/div&gt;
+    ${detailCard('総チケット', metrics.total)}
+    ${detailCard('未対応', metrics.unresolved)}
+  `</span>;
+}
+
+<span class="cmt">// 各ビュー 100〜200行の文字列テンプレート</span>
+<span class="cmt">// XSS: esc() は手動呼び出し → 漏れリスク</span></div>
+      </div>
+      <div class="card card-good" style="display:flex;flex-direction:column;">
+        <h3 style="color:var(--c-accent);margin-bottom:16px;">✅ 推奨 (To-Be)</h3>
+        <div class="code-block" style="font-size:14px;flex:1;">
+<span class="cmt">// React / Vue / Svelte によるコンポーネント化</span>
+<span class="cmt">// 例: React + TypeScript</span>
+
+<span class="kw">export</span> <span class="kw">function</span> <span class="fn">IncidentList</span>() {
+  <span class="kw">const</span> { data, isLoading } = <span class="fn">useQuery</span>(<span class="str">'incidents'</span>);
+  
+  <span class="kw">return</span> (
+    &lt;<span class="fn">PageLayout</span> title=<span class="str">"インシデント管理"</span>&gt;
+      &lt;<span class="fn">KPIGrid</span> items={kpis} /&gt;
+      &lt;<span class="fn">DataTable</span>
+        columns={columns}
+        data={data?.items}
+        loading={isLoading}
+      /&gt;
+    &lt;/<span class="fn">PageLayout</span>&gt;
+  );
+}
+
+<span class="cmt">// 自動エスケープ、型安全、テスト容易</span></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+      <div class="card card-blue" style="padding:20px;text-align:center;">
+        <div style="font-size:32px;margin-bottom:8px;">📦</div>
+        <h3 style="font-size:16px;">Vite + React</h3>
+        <p style="font-size:14px;">HMR, Tree-shaking, Code-splitting</p>
+      </div>
+      <div class="card card-blue" style="padding:20px;text-align:center;">
+        <div style="font-size:32px;margin-bottom:8px;">🔒</div>
+        <h3 style="font-size:16px;">TypeScript</h3>
+        <p style="font-size:14px;">API レスポンス型の自動生成</p>
+      </div>
+      <div class="card card-blue" style="padding:20px;text-align:center;">
+        <div style="font-size:32px;margin-bottom:8px;">🎨</div>
+        <h3 style="font-size:16px;">Tailwind / CSS Modules</h3>
+        <p style="font-size:14px;">デザイントークンの体系化</p>
+      </div>
+      <div class="card card-blue" style="padding:20px;text-align:center;">
+        <div style="font-size:32px;margin-bottom:8px;">📊</div>
+        <h3 style="font-size:16px;">TanStack Query</h3>
+        <p style="font-size:14px;">サーバー状態とキャッシュ管理</p>
+      </div>
+    </div>
+  </div>
+  <div class="footer-line"></div>
+</section>
+
+<!-- ====== SLIDE 08: Best Practice — Component Architecture ====== -->
+<section data-screen-label="08 BP Component Arch">
+  <div class="grid-bg"></div>
+  <div class="slide-header">
+    <span class="tag tag-accent">Best Practice #2</span>
+    <h2>コンポーネントアーキテクチャ</h2>
+  </div>
+  <div class="slide-body">
+    <p style="font-size:20px;color:var(--c-text-dim);max-width:1000px;">現状の「1ファイル＝1アプリ」から、責務分離された再利用可能なコンポーネント構造への移行を提案。</p>
+    <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:32px;flex:1;">
+      <div class="card card-purple" style="padding:28px;">
+        <h3 style="color:var(--c-accent-2);margin-bottom:16px;">推奨ディレクトリ構造</h3>
+        <div class="code-block" style="font-size:15px;">
+frontend/src/
+├── components/
+│   ├── common/
+│   │   ├── <span class="fn">DataTable</span>.tsx
+│   │   ├── <span class="fn">KPICard</span>.tsx
+│   │   ├── <span class="fn">Modal</span>.tsx
+│   │   ├── <span class="fn">StatusChip</span>.tsx
+│   │   └── <span class="fn">SLAPill</span>.tsx
+│   ├── layout/
+│   │   ├── <span class="fn">Sidebar</span>.tsx
+│   │   ├── <span class="fn">Header</span>.tsx
+│   │   └── <span class="fn">PageLayout</span>.tsx
+│   └── features/
+│       ├── incidents/
+│       ├── problems/
+│       ├── changes/
+│       └── dashboard/
+├── hooks/
+│   ├── <span class="fn">useAuth</span>.ts
+│   └── <span class="fn">useApi</span>.ts
+├── stores/
+│   └── <span class="fn">authStore</span>.ts
+└── types/
+    └── <span class="fn">api</span>.ts <span class="cmt">← OpenAPI 自動生成</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card card-good">
+          <h3>共通コンポーネント抽出</h3>
+          <p style="margin-bottom:10px;">現在のコードから以下のパターンが繰り返し出現しており、共通化の効果が大きい：</p>
+          <table class="comp-table">
+            <thead><tr><th>パターン</th><th>出現回数</th><th>共通化効果</th></tr></thead>
+            <tbody>
+              <tr><td class="label-col">KPIカード (3列)</td><td>14モジュール × 3</td><td class="icon-good">約400行削減</td></tr>
+              <tr><td class="label-col">DataTable</td><td>14モジュール</td><td class="icon-good">約600行削減</td></tr>
+              <tr><td class="label-col">StatusChip / PriorityChip</td><td>全テーブル行</td><td class="icon-good">ロジック統一</td></tr>
+              <tr><td class="label-col">モーダル (作成/編集)</td><td>10画面以上</td><td class="icon-good">約300行削減</td></tr>
+              <tr><td class="label-col">ブレッドクラム</td><td>全サブビュー</td><td class="icon-mid">約50行削減</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card card-mid" style="padding:24px;">
+          <h3 style="font-size:18px;color:var(--c-mid);">推定効果</h3>
+          <p style="font-size:17px;">コンポーネント化により <strong style="color:var(--c-accent);font-size:22px;">約60%</strong> のコード量削減、テスト容易性の大幅向上が見込まれる。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-line"></div>
+</section>
+
+<!-- ====== SLIDE 09: Best Practice — State & API ====== -->
+<section data-screen-label="09 BP State & API">
+  <div class="grid-bg"></div>
+  <div class="slide-header">
+    <span class="tag tag-accent">Best Practice #3</span>
+    <h2>状態管理 &amp; API統合</h2>
+  </div>
+  <div class="slide-body">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;flex:1;">
+      <div style="display:flex;flex-direction:column;gap:20px;">
+        <div class="card card-warn">
+          <h3 style="color:var(--c-warn);">現状の問題</h3>
+          <ul>
+            <li>グローバル state を直接 mutate</li>
+            <li>API データとローカルサンプルデータが混在</li>
+            <li>各ビューで loadXxxData() を個別実装</li>
+            <li>エラー状態の表示が不統一</li>
+            <li>ローディング状態の UX が未整備</li>
+          </ul>
+        </div>
+        <div class="card card-good">
+          <h3 style="color:var(--c-accent);">推奨パターン</h3>
+          <ul>
+            <li>TanStack Query でサーバー状態を一元管理</li>
+            <li>Zustand / Jotai で UI ローカル状態を管理</li>
+            <li>API クライアントを自動生成（openapi-ts）</li>
+            <li>Optimistic Update でUXを向上</li>
+            <li>エラーバウンダリで統一的なエラー表示</li>
+          </ul>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card card-blue" style="flex:1;">
+          <h3 style="color:var(--c-blue);margin-bottom:16px;">推奨データフロー</h3>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div class="arch-box" style="border-color:var(--c-accent);">
+              <span style="font-size:15px;font-weight:700;">Component (View Layer)</span><br>
+              <span style="font-size:13px;color:var(--c-text-dim);">useQuery / useMutation で宣言的にデータ取得</span>
+            </div>
+            <div class="arch-arrow" style="font-size:22px;">↕</div>
+            <div class="arch-box" style="border-color:var(--c-blue);">
+              <span style="font-size:15px;font-weight:700;">TanStack Query (Cache Layer)</span><br>
+              <span style="font-size:13px;color:var(--c-text-dim);">自動キャッシュ / 再取得 / Optimistic Update</span>
+            </div>
+            <div class="arch-arrow" style="font-size:22px;">↕</div>
+            <div class="arch-box" style="border-color:var(--c-accent-2);">
+              <span style="font-size:15px;font-weight:700;">API Client (Generated)</span><br>
+              <span style="font-size:13px;color:var(--c-text-dim);">OpenAPI スキーマから TypeScript 型 &amp; クライアント自動生成</span>
+            </div>
+            <div class="arch-arrow" style="font-size:22px;">↕</div>
+            <div class="arch-box" style="border-color:var(--c-mid);">
+              <span style="font-size:15px;font-weight:700;">FastAPI Backend</span><br>
+              <span style="font-size:13px;color:var(--c-text-dim);">Pydantic スキーマ → OpenAPI 自動出力</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-line"></div>
+</section>
+
+<!-- ====== SLIDE 10: Best Practice — Security ====== -->
+<section data-screen-label="10 BP Security">
+  <div class="grid-bg"></div>
+  <div class="slide-header">
+    <span class="tag tag-warn">Best Practice #4</span>
+    <h2>セキュリティ強化</h2>
+  </div>
+  <div class="slide-body">
+    <div class="card-grid" style="grid-template-columns:1fr 1fr 1fr;flex:1;">
+      <div class="card card-warn" style="display:flex;flex-direction:column;">
+        <h3 style="color:var(--c-warn);">🔑 認証・認可</h3>
+        <table class="comp-table" style="font-size:15px;">
+          <thead><tr><th>項目</th><th>推奨</th></tr></thead>
+          <tbody>
+            <tr><td>Refresh Token</td><td><span class="icon-warn">未実装</span> → 短寿命AT + RT</td></tr>
+            <tr><td>ログイン制限</td><td><span class="icon-warn">なし</span> → 5回/15分</td></tr>
+            <tr><td>MFA</td><td><span class="icon-mid">将来</span> → TOTP 対応</td></tr>
+            <tr><td>セッション管理</td><td>トークンブラックリスト</td></tr>
+            <tr><td>CSRF</td><td>SameSite + Double Submit</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card card-mid" style="display:flex;flex-direction:column;">
+        <h3 style="color:var(--c-mid);">🛡️ API セキュリティ</h3>
+        <table class="comp-table" style="font-size:15px;">
+          <thead><tr><th>項目</th><th>推奨</th></tr></thead>
+          <tbody>
+            <tr><td>Rate Limit</td><td>slowapi 導入</td></tr>
+            <tr><td>CORS</td><td>allow_methods 明示指定</td></tr>
+            <tr><td>Input Validation</td><td>Pydantic + カスタム</td></tr>
+            <tr><td>SQL Injection</td><td>ORM で概ね対策済み ✅</td></tr>
+            <tr><td>File Upload</td><td>MIME 検証 + サイズ制限</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card card-blue" style="display:flex;flex-direction:column;">
+        <h3 style="color:var(--c-blue);">📋 運用セキュリティ</h3>
+        <table class="comp-table" style="font-size:15px;">
+          <thead><tr><th>項目</th><th>推奨</th></tr></thead>
+          <tbody>
+            <tr><td>Secret 管理</td><td>Vault / 環境変数厳格化</td></tr>
+            <tr><td>依存脆弱性</td><td>Dependabot + Safety</td></tr>
+            <tr><td>ログ</td><td>構造化ログ (JSON)</td></tr>
+            <tr><td>HTTPS</td><td>TLS 1.3 強制</td></tr>
+            <tr><td>CSP Header</td><td>Content-Security-Policy</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card card-purple" style="padding:20px 32px;display:flex;align-items:center;gap:20px;">
+      <div style="font-size:28px;">💡</div>
+      <p style="font-size:18px;color:var(--c-text);"><strong>優先度:</strong> Refresh Token 実装 → Rate Limiting → CORS 厳格化 → CSP ヘッダー → MFA 対応の順で段階的に導入を推奨。</p>
+    </div>
+  </div>
+  <div class="footer-line"></div>
+</section>
+
+<!-- ====== SLIDE 11: Best Practice — CSS & Design System ====== -->
+<section data-screen-label="11 BP Design System">
+  <div class="grid-bg"></div>
+  <div class="slide-header">
+    <span class="tag tag-accent">Best Practice #5</span>
+    <h2>デザインシステム構築</h2>
+  </div>
+  <div class="slide-body">
+    <p style="font-size:20px;color:var(--c-text-dim);">現状のハードコードされたCSS値を、体系的なデザイントークンとコンポーネントライブラリに移行。</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;flex:1;">
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card card-good">
+          <h3 style="color:var(--c-accent);">カラートークン定義</h3>
+          <div class="code-block" style="font-size:14px;">
+<span class="cmt">/* tokens.css — デザイントークン */</span>
+<span class="kw">:root</span> {
+  <span class="cmt">/* Primary */</span>
+  <span class="str">--color-primary-50</span>:  <span class="num">#e3f2fd</span>;
+  <span class="str">--color-primary-500</span>: <span class="num">#1976d2</span>;
+  <span class="str">--color-primary-700</span>: <span class="num">#1565c0</span>;
+  
+  <span class="cmt">/* Semantic */</span>
+  <span class="str">--color-success</span>: <span class="num">#2e7d32</span>;
+  <span class="str">--color-warning</span>: <span class="num">#ef6c00</span>;
+  <span class="str">--color-danger</span>:  <span class="num">#c62828</span>;
+  
+  <span class="cmt">/* Surface (Light/Dark 自動切替) */</span>
+  <span class="str">--surface-bg</span>:   <span class="fn">light-dark</span>(<span class="num">#fff</span>, <span class="num">#1f2937</span>);
+  <span class="str">--surface-text</span>: <span class="fn">light-dark</span>(<span class="num">#333</span>, <span class="num">#e5e7eb</span>);
+  
+  <span class="cmt">/* Spacing Scale */</span>
+  <span class="str">--space-xs</span>: <span class="num">4px</span>;
+  <span class="str">--space-sm</span>: <span class="num">8px</span>;
+  <span class="str">--space-md</span>: <span class="num">16px</span>;
+  <span class="str">--space-lg</span>: <span class="num">24px</span>;
+  <span class="str">--space-xl</span>: <span class="num">32px</span>;
+}</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card card-warn">
+          <h3 style="color:var(--c-warn);">現状の問題</h3>
+          <ul>
+            <li>色値 #1976d2 が50箇所以上にハードコード</li>
+            <li>ダークモード切替に50+セレクタの上書き</li>
+            <li>spacing が 8px / 12px / 16px / 24px と不統一</li>
+            <li>font-size が 11px〜36px まで15種以上</li>
+            <li>border-radius が 4px / 6px / 8px / 12px と混在</li>
+          </ul>
+        </div>
+        <div class="card card-good">
+          <h3 style="color:var(--c-accent);">改善効果</h3>
+          <ul>
+            <li>ダークモードが CSS 変数切替のみで実現</li>
+            <li>ブランド変更がトークン1箇所の修正で完了</li>
+            <li>一貫した視覚的リズムとスペーシング</li>
+            <li>コンポーネント間のデザイン不整合を根絶</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-line"></div>
+</section>
+
+<!-- ====== SLIDE 12: Best Practice — Performance ====== -->
+<section data-screen-label="12 BP Performance">
+  <div class="grid-bg"></div>
+  <div class="slide-header">
+    <span class="tag tag-blue">Best Practice #6</span>
+    <h2>パフォーマンス最適化</h2>
+  </div>
+  <div class="slide-body">
+    <div class="card-grid" style="grid-template-columns:1fr 1fr;flex:1;">
+      <div class="card card-warn">
+        <h3 style="color:var(--c-warn);">フロントエンド</h3>
+        <table class="comp-table" style="font-size:16px;">
+          <thead><tr><th>課題</th><th>改善策</th></tr></thead>
+          <tbody>
+            <tr><td class="label-col">240KB 単一ファイル</td><td>Code Splitting + Lazy Loading</td></tr>
+            <tr><td class="label-col">全DOM再構築</td><td>仮想DOM + 差分更新</td></tr>
+            <tr><td class="label-col">Canvas手描きグラフ</td><td>Chart.js / Recharts 導入</td></tr>
+            <tr><td class="label-col">アイコンが絵文字</td><td>SVG アイコンセット導入</td></tr>
+            <tr><td class="label-col">フォント未最適化</td><td>サブセット + preload</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card card-mid">
+        <h3 style="color:var(--c-mid);">バックエンド</h3>
+        <table class="comp-table" style="font-size:16px;">
+          <thead><tr><th>課題</th><th>改善策</th></tr></thead>
+          <tbody>
+            <tr><td class="label-col">N+1 クエリ</td><td>selectinload / joinedload</td></tr>
+            <tr><td class="label-col">ページネーション</td><td>Cursor-based pagination</td></tr>
+            <tr><td class="label-col">キャッシュなし</td><td>Redis + ETag ヘッダー</td></tr>
+            <tr><td class="label-col">非同期未活用</td><td>async SQLAlchemy 2.0</td></tr>
+            <tr><td class="label-col">ダッシュボード集計</td><td>マテリアライズドビュー</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card card-good" style="grid-column:1/-1;">
+        <h3 style="color:var(--c-accent);margin-bottom:12px;">目標メトリクス</h3>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:20px;text-align:center;">
+          <div>
+            <div style="font-size:36px;font-weight:900;color:var(--c-accent);font-family:var(--font-mono);">&lt; 1s</div>
+            <div style="font-size:14px;color:var(--c-text-dim);margin-top:6px;">初期ロード (LCP)</div>
+          </div>
+          <div>
+            <div style="font-size:36px;font-weight:900;color:var(--c-accent);font-family:var(--font-mono);">&lt; 100ms</div>
+            <div style="font-size:14px;color:var(--c-text-dim);margin-top:6px;">画面遷移</div>
+          </div>
+          <div>
+            <div style="font-size:36px;font-weight:900;color:var(--c-accent);font-family:var(--font-mono);">&lt; 200ms</div>
+            <div style="font-size:14px;color:var(--c-text-dim);margin-top:6px;">API レスポンス</div>
+          </div>
+          <div>
+            <div style="font-size:36px;font-weight:900;color:var(--c-accent);font-family:var(--font-mono);">&lt; 50KB</div>
+            <div style="font-size:14px;color:var(--c-text-dim);margin-top:6px;">初期 JS バンドル</div>
+          </div>
+          <div>
+            <div style="font-size:36px;font-weight:900;color:var(--c-accent);font-family:var(--font-mono);">90+</div>
+            <div style="font-size:14px;color:var(--c-text-dim);margin-top:6px;">Lighthouse スコア</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-line"></div>
+</section>
+
+<!-- ====== SLIDE 13: Best Practice — Testing ====== -->
+<section data-screen-label="13 BP Testing">
+  <div class="grid-bg"></div>
+  <div class="slide-header">
+    <span class="tag tag-purple">Best Practice #7</span>
+    <h2>テスト戦略</h2>
+  </div>
+  <div class="slide-body">
+    <div style="display:grid;grid-template-columns:0.8fr 1.2fr;gap:32px;flex:1;">
+      <!-- Test Pyramid -->
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">
+        <div style="width:200px;text-align:center;padding:20px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.3);border-radius:12px 12px 0 0;">
+          <div style="font-size:18px;font-weight:700;color:var(--c-warn);">E2E</div>
+          <div style="font-size:14px;color:var(--c-text-dim);">13 → 50+</div>
+        </div>
+        <div style="width:360px;text-align:center;padding:20px;background:rgba(255,217,61,0.1);border:1px solid rgba(255,217,61,0.3);">
+          <div style="font-size:18px;font-weight:700;color:var(--c-mid);">Integration</div>
+          <div style="font-size:14px;color:var(--c-text-dim);">0 → 100+</div>
+        </div>
+        <div style="width:520px;text-align:center;padding:20px;background:rgba(100,255,218,0.1);border:1px solid rgba(100,255,218,0.3);border-radius:0 0 12px 12px;">
+          <div style="font-size:18px;font-weight:700;color:var(--c-accent);">Unit</div>
+          <div style="font-size:14px;color:var(--c-text-dim);">124 → 300+</div>
+        </div>
+        <p style="font-size:14px;color:var(--c-text-dim);margin-top:12px;">テストピラミッド目標</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card card-good">
+          <h3>ユニットテスト拡充</h3>
+          <ul>
+            <li>フロントエンドコンポーネントのテスト追加（Vitest + Testing Library）</li>
+            <li>SLA計算ロジックのエッジケーステスト</li>
+            <li>バリデーションルールの境界値テスト</li>
+            <li>RBAC 権限チェックの網羅テスト</li>
+          </ul>
+        </div>
+        <div class="card card-mid">
+          <h3>インテグレーションテスト新設</h3>
+          <ul>
+            <li>API → Service → DB の結合テスト</li>
+            <li>認証フロー全体のシナリオテスト</li>
+            <li>変更管理のステータス遷移フロー検証</li>
+            <li>CSV / Excel エクスポートの結合テスト</li>
+          </ul>
+        </div>
+        <div class="card card-warn">
+          <h3>E2E テスト強化</h3>
+          <ul>
+            <li>Playwright でクリティカルパス自動化</li>
+            <li>インシデント作成 → SLA監視 → 解決の一連フロー</li>
+            <li>ダークモード / レスポンシブの視覚回帰テスト</li>
+            <li>CI/CD パイプラインへの組み込み</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-line"></div>
+</section>
+
+<!-- ====== SLIDE 14: Roadmap ====== -->
+<section data-screen-label="14 Roadmap">
+  <div class="grid-bg"></div>
+  <div class="glow-orb" style="width:500px;height:500px;background:var(--c-blue);bottom:-200px;right:-100px;"></div>
+  <div class="slide-header">
+    <span class="tag tag-accent">Action Plan</span>
+    <h2>改善ロードマップ</h2>
+  </div>
+  <div class="slide-body">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;flex:1;">
+      <!-- Phase 1 -->
+      <div class="card card-warn" style="display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <div class="num-circle" style="background:rgba(255,107,107,0.15);color:var(--c-warn);font-size:18px;">P1</div>
+          <div>
+            <h3 style="font-size:20px;margin-bottom:0;">Phase 1: 緊急対応</h3>
+            <span style="font-size:14px;color:var(--c-text-dim);font-family:var(--font-mono);">〜1ヶ月</span>
+          </div>
+        </div>
+        <ul style="flex:1;">
+          <li>セキュリティヘッダー追加 (CSP, HSTS)</li>
+          <li>CORS 設定の厳格化</li>
+          <li>Rate Limiting 導入 (slowapi)</li>
+          <li>Refresh Token 実装</li>
+          <li>エラーレスポンス統一</li>
+          <li>CSS変数への段階的移行</li>
+          <li>アクセシビリティ最低限対応 (aria-label)</li>
+        </ul>
+        <div style="margin-top:auto;padding-top:16px;border-top:1px solid var(--c-border);font-family:var(--font-mono);font-size:14px;color:var(--c-text-dim);">
+          工数見積: <strong style="color:var(--c-warn);">40〜60h</strong>
+        </div>
+      </div>
+      <!-- Phase 2 -->
+      <div class="card card-mid" style="display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <div class="num-circle" style="background:rgba(255,217,61,0.15);color:var(--c-mid);font-size:18px;">P2</div>
+          <div>
+            <h3 style="font-size:20px;margin-bottom:0;">Phase 2: 基盤刷新</h3>
+            <span style="font-size:14px;color:var(--c-text-dim);font-family:var(--font-mono);">2〜3ヶ月</span>
+          </div>
+        </div>
+        <ul style="flex:1;">
+          <li>React + TypeScript + Vite 移行</li>
+          <li>コンポーネントライブラリ構築</li>
+          <li>デザイントークン体系化</li>
+          <li>TanStack Query による API 統合</li>
+          <li>OpenAPI → TypeScript 型自動生成</li>
+          <li>テストカバレッジ 80% 目標</li>
+          <li>N+1 クエリ解消</li>
+        </ul>
+        <div style="margin-top:auto;padding-top:16px;border-top:1px solid var(--c-border);font-family:var(--font-mono);font-size:14px;color:var(--c-text-dim);">
+          工数見積: <strong style="color:var(--c-mid);">200〜300h</strong>
+        </div>
+      </div>
+      <!-- Phase 3 -->
+      <div class="card card-good" style="display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <div class="num-circle" style="background:rgba(100,255,218,0.15);color:var(--c-accent);font-size:18px;">P3</div>
+          <div>
+            <h3 style="font-size:20px;margin-bottom:0;">Phase 3: プロダクション品質</h3>
+            <span style="font-size:14px;color:var(--c-text-dim);font-family:var(--font-mono);">4〜6ヶ月</span>
+          </div>
+        </div>
+        <ul style="flex:1;">
+          <li>PostgreSQL 移行 + パフォーマンス最適化</li>
+          <li>Redis キャッシュ導入</li>
+          <li>Playwright E2E テスト充実</li>
+          <li>MFA / Entra ID 統合</li>
+          <li>構造化ログ + モニタリング</li>
+          <li>CI/CD パイプライン完成</li>
+          <li>ドキュメント整備 (Storybook)</li>
+        </ul>
+        <div style="margin-top:auto;padding-top:16px;border-top:1px solid var(--c-border);font-family:var(--font-mono);font-size:14px;color:var(--c-text-dim);">
+          工数見積: <strong style="color:var(--c-accent);">300〜400h</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-line"></div>
+</section>
+
+<!-- ====== SLIDE 15: Summary ====== -->
+<section data-screen-label="15 Summary">
+  <div class="grid-bg"></div>
+  <div class="glow-orb" style="width:600px;height:600px;background:var(--c-accent);bottom:-300px;left:50%;transform:translateX(-50%);"></div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0 100px;gap:40px;position:relative;">
+    <span class="tag tag-accent">Summary</span>
+    <h1 style="font-size:56px;max-width:1200px;">
+      堅実なバックエンド設計を活かし、<br>
+      <span style="background:linear-gradient(135deg,var(--c-accent),var(--c-blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">フロントエンドの全面刷新</span>が鍵
+    </h1>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:32px;max-width:1200px;margin-top:16px;">
+      <div class="card card-good" style="text-align:center;padding:32px;">
+        <div style="font-size:48px;font-weight:900;color:var(--c-accent);font-family:var(--font-mono);">85</div>
+        <div style="font-size:16px;color:var(--c-text-dim);margin-top:8px;">機能カバレッジは十分</div>
+      </div>
+      <div class="card card-warn" style="text-align:center;padding:32px;">
+        <div style="font-size:48px;font-weight:900;color:var(--c-warn);font-family:var(--font-mono);">30</div>
+        <div style="font-size:16px;color:var(--c-text-dim);margin-top:8px;">フロント設計が最大課題</div>
+      </div>
+      <div class="card card-blue" style="text-align:center;padding:32px;">
+        <div style="font-size:48px;font-weight:900;color:var(--c-blue);font-family:var(--font-mono);">6M</div>
+        <div style="font-size:16px;color:var(--c-text-dim);margin-top:8px;">改善期間（段階的）</div>
+      </div>
+    </div>
+    <p style="font-size:22px;color:var(--c-text-dim);max-width:900px;line-height:1.7;">
+      バックエンドの ITIL 準拠設計と監査ログ基盤は高く評価できます。<br>
+      フロントエンドの React 移行とデザインシステム構築を最優先とし、<br>
+      セキュリティ強化と合わせて段階的にプロダクション品質へ引き上げましょう。
+    </p>
+  </div>
+  <div class="footer-line"></div>
+</section>
+
+</deck-stage>
+</body>
+</html>
