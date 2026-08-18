@@ -139,6 +139,11 @@ test('ステータスフィルタ → 該当件数', async () => {
   assert.ok(res.body.items.every((i: { status: string }) => i.status === 'in_progress'));
 });
 
+test('未認証でダッシュボード → 401（認可）', async () => {
+  const res = await call('/api/dashboard/summary');
+  assert.equal(res.status, 401);
+});
+
 test('ダッシュボードサマリ → 200 + 数値', async () => {
   const res = await call('/api/dashboard/summary', { cookie: adminCookie });
   assert.equal(res.status, 200);

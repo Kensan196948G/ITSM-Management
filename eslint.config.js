@@ -12,6 +12,8 @@ export default tseslint.config(
       'playwright-report/**',
       'test-results/**',
       'src/generated/**',
+      '.wrangler/**',
+      '.dev.vars',
       // レガシー資産（OpenDesign参照・移行対象外）
       'v2/**',
       'frontend/**',
