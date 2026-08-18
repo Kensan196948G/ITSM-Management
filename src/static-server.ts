@@ -26,7 +26,7 @@ export async function staticAssets(c: Context<AppEnv>, next: () => Promise<unkno
   const path = url.pathname;
   if (path.startsWith('/api/')) return next();
 
-  let key = path.replace(/^\//, '') || 'index.html';
+  const key = path.replace(/^\//, '') || 'index.html';
   const asset = SPA_ASSETS[key];
   if (!asset) {
     // SPAフォールバック（クライアントルーティング）
