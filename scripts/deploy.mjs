@@ -87,10 +87,12 @@ if (dryRun) {
 }
 
 // ---- 3. スクリプトアップロード（multipart）----
+// モジュールパートの Content-Type は application/javascript+module が必須
+// （application/javascript だと CJS として解釈され "Unexpected token 'export'" になる）
 const boundary = `----itsm${Date.now()}`;
-const metaPart = `--${boundary}\r\nContent-Disposition: form-data; name="metadata"\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(metadata)}\r\n`;
-const modulePart = `--${boundary}\r\nContent-Disposition: form-data; name="worker.mjs"\r\nContent-Type: application/javascript\r\n\r\n${bundle}\r\n--${boundary}--\r\n`;
-const body = metaPart + modulePart;
+const modulePart = `--${boundary}\r\nContent-Disposition: form-data; name="worker.mjs"; filename="worker.mjs"\r\nContent-Type: application/javascript+module\r\n\r\n${bundle}\r\n`;
+const metaPart = `--${boundary}\r\nContent-Disposition: form-data; name="metadata"\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}--\r\n`;
+const body = modulePart + metaPart;
 
 console.log(`> PUT /accounts/${ACCOUNT_ID}/workers/scripts/${WORKER_NAME}`);
 const up = await cf(`/accounts/${ACCOUNT_ID}/workers/scripts/${WORKER_NAME}`, {
