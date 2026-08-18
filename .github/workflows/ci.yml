@@ -40,6 +40,8 @@ jobs:
       - run: npm ci
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
+      - name: Worker build (for local dev server)
+        run: npm run build:worker
       - name: E2E tests (local worker + Neon verify DB)
         env:
           DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
