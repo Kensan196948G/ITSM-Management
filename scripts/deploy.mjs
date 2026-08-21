@@ -78,6 +78,9 @@ const metadata = {
   main_module: 'worker.mjs',
   compatibility_date: '2026-08-16',
   bindings,
+  // bindings に列挙しない既存シークレット（DATABASE_URL / SESSION_SECRET）を
+  // アップロードで消さないための指定。これが無いと --secrets 無しのデプロイで Worker が壊れる。
+  keep_bindings: ['secret_text'],
 };
 
 if (dryRun) {
