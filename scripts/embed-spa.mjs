@@ -34,7 +34,10 @@ export const SPA_ASSETS: Record<string, { b64: string; ct: string }> = ${JSON.st
 // 既存の SPA_ASSETS 定義（値の有無を問わず）を置換
 const target = join(root, 'src', 'static-server.ts');
 const current = readFileSync(target, 'utf8');
-const replaced = current.replace(/export const SPA_ASSETS: Record<string, \{ b64: string; ct: string \}> = \{[\s\S]*?\};\n?/, code);
+// 既存の SPA_ASSETS 定義と、その直前に生成済みのコメント行（重複分を含む）をまとめて置換する。
+// コメント行を含めないと、ビルドのたびにコメントだけが1行ずつ増えて差分が発生する。
+const SPA_ASSETS_BLOCK = /(?:\/\*\* 自動生成: SPAアセット（scripts\/embed-spa\.mjs） \*\/\n)*export const SPA_ASSETS: Record<string, \{ b64: string; ct: string \}> = \{[\s\S]*?\};\n?/;
+const replaced = current.replace(SPA_ASSETS_BLOCK, code);
 if (!replaced.includes('自動生成: SPAアセット') || !replaced.includes(JSON.stringify(assets).slice(0, 50))) {
   console.error('static-server.ts の SPA_ASSETS 置換に失敗しました');
   process.exit(1);
