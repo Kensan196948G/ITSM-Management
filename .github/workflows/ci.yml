@@ -40,19 +40,11 @@ jobs:
       - run: npm ci
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
-      - name: Worker build (for local dev server)
-        run: npm run build:worker
-      - name: E2E tests (local worker + Neon verify DB)
-        env:
-          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+      - name: Build (SPA embed + worker)
+        run: npm run build:all
+      - name: E2E tests (dev-server + ローカル D1)
         run: |
-          node -e "
-            const fs=require('fs');
-            fs.writeFileSync('.dev.vars',
-              'DATABASE_URL='+process.env.DATABASE_URL+'\n'+
-              'SESSION_SECRET='+require('crypto').randomBytes(32).toString('hex')+'\n');
-          "
-          npx wrangler dev --port 8793 --local &
+          PORT=8793 SEED_ON_START=true node --import tsx src/dev-server.ts > /tmp/devserver.log 2>&1 &
           for i in $(seq 1 30); do
             curl -sf http://127.0.0.1:8793/api/health > /dev/null && break
             sleep 1
@@ -70,21 +62,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Integration tests (Neon test branch)
-        env:
-          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
-        run: |
-          cp .env.example .env
-          node -e "
-            const fs=require('fs');
-            let e=fs.readFileSync('.env','utf8');
-            e=e.replace(/^DATABASE_URL=.*$/m, 'DATABASE_URL='+process.env.DATABASE_URL);
-            e=e.replace(/^SESSION_SECRET=.*$/m, 'SESSION_SECRET='+require('crypto').randomBytes(32).toString('hex'));
-            fs.writeFileSync('.env', e);
-          "
-          npm run db:migrate
-          npm run db:seed
-          npm run test:integration
+      - name: Integration tests (ローカル D1 / in-memory)
+        run: npm run test:integration
 
   deploy:
     runs-on: ubuntu-latest
@@ -99,17 +78,30 @@ jobs:
       - run: npm ci
       - name: Build
         run: npm run build:all
+      - name: Migrate D1 (remote)
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
+        run: |
+          cat > .env <<EOF
+          CLOUDFLARE_ACCOUNT_ID=$CLOUDFLARE_ACCOUNT_ID
+          CLOUDFLARE_API_TOKEN=$CLOUDFLARE_API_TOKEN
+          D1_DATABASE_ID=$D1_DATABASE_ID
+          SESSION_SECRET=${{ secrets.SESSION_SECRET }}
+          EOF
+          node scripts/migrate.ts
       - name: Deploy to Cloudflare Workers
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
         run: |
           cat > .env <<EOF
           CLOUDFLARE_ACCOUNT_ID=$CLOUDFLARE_ACCOUNT_ID
           CLOUDFLARE_API_TOKEN=$CLOUDFLARE_API_TOKEN
-          DATABASE_URL=$DATABASE_URL
+          D1_DATABASE_ID=$D1_DATABASE_ID
           SESSION_SECRET=$SESSION_SECRET
           EOF
           node scripts/deploy.mjs --secrets

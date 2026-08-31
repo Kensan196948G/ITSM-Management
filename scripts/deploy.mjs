@@ -3,7 +3,7 @@
  *
  *   使い方:
  *     node scripts/deploy.mjs                # 通常デプロイ
- *     node scripts/deploy.mjs --secrets      # シークレット（DATABASE_URL/SESSION_SECRET）も設定
+ *     node scripts/deploy.mjs --secrets      # シークレット（SESSION_SECRET）も設定
  *     node scripts/deploy.mjs --dry-run      # アップロードせず検証のみ
  */
 import { readFileSync, existsSync } from 'node:fs';
@@ -70,15 +70,21 @@ const bundle = readFileSync(bundlePath, 'utf8');
 console.log(`worker.mjs: ${(bundle.length / 1024).toFixed(1)} KB`);
 
 // ---- 2. メタデータ ----
+const D1_DATABASE_ID = env.D1_DATABASE_ID;
+if (!D1_DATABASE_ID) {
+  console.error('D1_DATABASE_ID が設定されていません（.env に itsm-management-db の ID を設定）');
+  process.exit(1);
+}
 const bindings = [
   { type: 'plain_text', name: 'APP_NAME', text: 'itsm-management' },
   { type: 'plain_text', name: 'ENVIRONMENT', text: env.ENVIRONMENT ?? 'production' },
+  { type: 'd1', name: 'DB', id: D1_DATABASE_ID },
 ];
 const metadata = {
   main_module: 'worker.mjs',
   compatibility_date: '2026-08-16',
   bindings,
-  // bindings に列挙しない既存シークレット（DATABASE_URL / SESSION_SECRET）を
+  // bindings に列挙しない既存シークレット（SESSION_SECRET）を
   // アップロードで消さないための指定。これが無いと --secrets 無しのデプロイで Worker が壊れる。
   keep_bindings: ['secret_text'],
 };
@@ -108,7 +114,6 @@ console.log(`スクリプト更新: ${up.result?.id ?? WORKER_NAME} (${up.succes
 // ---- 4. シークレット（--secrets 時のみ。既存シークレットを上書きしない方針）----
 if (withSecrets) {
   const secrets = [
-    ['DATABASE_URL', env.DATABASE_URL],
     ['SESSION_SECRET', env.SESSION_SECRET],
   ];
   for (const [name, value] of secrets) {

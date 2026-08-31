@@ -9,14 +9,14 @@
 | GitHub | ソース・Issue・PR・CI/CD・文書の正本 | `Kensan196948G/ITSM-Management`（private, main） |
 | OpenDesign | 画面構成・UI/UX・デザイン仕様の起点 | `docs/05-画面設計書.md` + 完成版 `index.html` |
 | Cloudflare | Workers（SPA配信+API）/ Secrets / 監視 | 構築済み: `itsm-management-api` + `itsm-management.mirai-dx-platform.com`（本番）/ `itsm-management-mvp.mirai-dx-platform.com`（MVP） |
-| Neon | PostgreSQL / Migration / Seed / 検証Branch DB | `green-mouse-97031557`（itsm-management、検証ブランチ `ci-verify` に空DB `itsm_verify`） |
+| D1 | SQLite / Migration / Seed / 検証DB | `itsm-management-db`（Cloudflare D1、2026-08-31 Neon 廃止に伴い移行） |
 | DeepSeek Harness | Goal / Workflow / SubAgent / Ralph 統合管理 | 進行中 |
 
 ## 2. 技術スタック（承認済み）
 
 - **フロントエンド**: React + Vite + TypeScript。既存 `index.html`（React CDN + Babel）のUI・デザイン・全モジュールを `web/` へ移植する。`v2/` のデザイントークン（`--c-primary-*`）を基準とする。
-- **バックエンド**: Cloudflare Workers + Hono + Neon serverless driver（HTTP SQL）。REST API は `docs/04-API設計書.md` に準拠。
-- **DB**: Neon PostgreSQL。マイグレーションは `migrations/*.sql`（psql適用、`scripts/migrate.ts` で管理）。シードは `scripts/seed.ts`。
+- **バックエンド**: Cloudflare Workers + Hono。REST API は `docs/04-API設計書.md` に準拠。
+- **DB**: Cloudflare D1（SQLite）。マイグレーションは `migrations/*.sql`（`scripts/migrate.ts` で D1 へ適用）。シードは `scripts/seed.ts`。
 - **認証**: セッションベース（sessionsテーブル + PBKDF2パスワードハッシュ）。`docs/06-セキュリティ設計書.md` に準拠。
 - **RBAC**: `viewer < operator < manager < admin`（`docs/01-要件定義書.md` §3.1）。
 - **テスト**: node --test（単体/統合）+ Playwright（E2E）。
@@ -34,7 +34,7 @@
 │   ├── app.ts                          # Hono アプリ組み立て
 │   ├── middleware.ts                   # DB / 認証 / RBAC / エラー / セキュリティ
 │   ├── auth.ts                         # パスワード・セッション・トークン
-│   ├── db/client.ts                    # Neon HTTP SQL クライアント
+│   ├── db/client.ts                    # D1 (SQLite) クライアント
 │   ├── routes/                         # モジュール別ルーター
 │   └── types.ts                        # 共有型
 ├── web/                                # React + Vite フロントエンド
@@ -52,8 +52,8 @@
 3. **仕様変更は docs と同期**: 実装と `docs/` が乖離したら、該当ドキュメントを更新する。
 4. **シークレットをコミットしない**: `.env`、`*.local`、実トークンは Git 管理外（`.gitignore` 済み）。`.env.example` のみコミットする。
 5. **DBはマイグレーション経由**: スキーマ変更は必ず `migrations/NNN_*.sql` を追加し、`scripts/migrate.ts` で適用する。直接のDDL変更をしない。
-6. **IDはUUID**: 新規テーブルの主キーは `uuid PRIMARY KEY DEFAULT gen_random_uuid()`。
-7. **日時はtimestamptz**: すべてUTC保存、表示はクライアントでJST変換。
+6. **IDはUUID**: 新規テーブルの主キーは TEXT（アプリで `crypto.randomUUID()` 生成 or SQLite `lower(hex(randomblob(16)))`）。
+7. **日時はISO-8601(UTC)**: すべてUTC保存（TEXT）、表示はクライアントでJST変換。DBデフォルトは `strftime('%Y-%m-%dT%H:%M:%fZ','now')`。
 8. **監査ログ**: 重要操作（create/update/delete）は `audit_logs` に記録する。
 9. **テスト必須**: 新規機能は単体テストを追加する。既存テストを壊さない。
 10. **PR必須**: main への直接 push を禁止。featureブランチ → PR → 必須チェック成功 → Squash Merge。
@@ -71,7 +71,7 @@
 
 - [x] 主要業務フロー（ログイン → ダッシュボード → インシデントCRUD → SLA監視 → 問題/変更/CMDB等）が操作可能
 - [x] ダミーデータで正常・空・エラー・権限別状態を確認可能
-- [x] Neon Migration + Seed を空の検証DBへ再実行可能（`itsm_verify` で実証済み）
+- [x] D1 Migration + Seed を空の検証DBへ再実行可能（`itsm-management-db` で実証済み）
 - [x] typecheck / lint / 主要テスト / E2E / build が成功
 - [x] レスポンシブ・キーボード操作・アクセシビリティ確認済み
 - [x] Cloudflare Previewで画面・API・認証・DB接続を確認済み（本番 E2E 7件成功）
@@ -80,7 +80,7 @@
 
 ## 7. 停止条件（即停止して報告）
 
-- 認証情報不足（GitHub / Cloudflare / Neon の権限・トークン欠如）
-- 外部障害（Cloudflare / Neon の障害）
+- 認証情報不足（GitHub / Cloudflare の権限・トークン欠如）
+- 外部障害（Cloudflare の障害）
 - 破壊的DB変更（DROP TABLE / 本番データ削除 / 復元困難な変更）
 - 費用・契約・請求・権限・認証方式の変更が必要な場合

@@ -192,13 +192,13 @@ export type SlaStatus = 'safe' | 'risk' | 'urgent';
 
 export interface AppEnv {
   Bindings: {
-    DATABASE_URL: string;
+    DB: D1Database;
     SESSION_SECRET: string;
     ENVIRONMENT?: string;
     APP_NAME?: string;
   };
   Variables: {
     user: UserRow;
-    db: import('./db/client.ts').NeonClient;
+    db: import('./db/client.ts').D1Client;
   };
 }

@@ -2,7 +2,8 @@
 # Cloudflare Workers 設定（ITSM Management / Service Desk API）
 # - ビルド: scripts/build-worker.mjs → worker-build/worker.mjs
 # - デプロイ: scripts/deploy.mjs（Cloudflare REST API 直接）または wrangler deploy
-# - シークレット（DATABASE_URL / SESSION_SECRET）は
+# - DB: Cloudflare D1（itsm-management-db）
+# - シークレット（SESSION_SECRET）は
 #   Cloudflare Dashboard > Workers > itsm-management-api > Settings > Variables and Secrets で管理
 #   （scripts/deploy.mjs の --secrets オプションでも設定可）
 # =====================================================================
@@ -13,6 +14,17 @@ compatibility_date = "2026-08-16"
 
 # workers.dev サブドメイン（https://itsm-management-api.<account-subdomain>.workers.dev）
 workers_dev = true
+
+# カスタムドメイン（Worker 直結。DNS CNAME → Cloudflare Tunnel は廃止）
+# routes = [
+#   { pattern = "itsm-management.mirai-dx-platform.com", custom_domain = true },
+#   { pattern = "itsm-management-mvp.mirai-dx-platform.com", custom_domain = true },
+# ]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "itsm-management-db"
+database_id = "1d28b176-4fa0-49d4-83a2-acc3eed6de65"
 
 [vars]
 APP_NAME = "itsm-management"

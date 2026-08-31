@@ -61,11 +61,14 @@ dashboardRoutes.get('/summary', async (c) => {
 /** 直近7日のインシデント推移 */
 dashboardRoutes.get('/trend', async (c) => {
   const db = c.get('db');
+  // SQLite: date(created_at) で日付化。基準日はアプリ側で ISO-8601 を生成
+  const cutoff = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
   const res = await db.query(
-    `SELECT created_at::date AS day, COUNT(*) AS cnt
+    `SELECT date(created_at) AS day, COUNT(*) AS cnt
      FROM incidents
-     WHERE created_at >= now() - interval '7 days'
+     WHERE created_at >= $1
      GROUP BY day ORDER BY day`,
+    [cutoff],
   );
   const byDay = new Map<string, number>();
   for (const r of res.rows) {

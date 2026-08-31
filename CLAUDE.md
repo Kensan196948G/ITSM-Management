@@ -10,7 +10,7 @@ npm install
 
 # 環境変数（Git管理外）
 cp .env.example .env
-#   DATABASE_URL=<Neon接続文字列>
+#   D1_DATABASE_ID=<Cloudflare D1 データベースID>
 #   SESSION_SECRET=<ランダム32byte以上>
 #   CLOUDFLARE_ACCOUNT_ID=<account id>
 #   CLOUDFLARE_API_TOKEN=<Workers Edit権限トークン>
@@ -44,7 +44,7 @@ npm run deploy
 | `build:all` | web + worker 両方 |
 | `test` | node --test 全テスト |
 | `test:unit` | 単体テスト |
-| `test:integration` | 統合テスト（Neonテストブランチ） |
+| `test:integration` | 統合テスト（ローカル D1 in-memory） |
 | `test:e2e` | Playwright E2E |
 | `db:migrate` | migrations/*.sql を未適用分のみ適用 |
 | `db:seed` | ダミーデータ投入（冪等） |
@@ -54,7 +54,7 @@ npm run deploy
 
 | 変数 | 必須 | 説明 |
 |------|:----:|------|
-| `DATABASE_URL` | ✅ | Neon PostgreSQL接続文字列 |
+| `D1_DATABASE_ID` | ✅ | Cloudflare D1 データベースID |
 | `SESSION_SECRET` | ✅ | セッション署名用シークレット |
 | `CLOUDFLARE_ACCOUNT_ID` | デプロイ時 | Cloudflare アカウントID |
 | `CLOUDFLARE_API_TOKEN` | デプロイ時 | Workers Scripts: Edit 権限トークン |
