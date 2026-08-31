@@ -2,7 +2,7 @@
 
 ITSM（ITサービス管理）向け **インシデント管理・問題管理・変更管理・構成管理（CMDB）・ナレッジ管理・資産管理・パッチ管理・セキュリティ管理・サービスリクエスト管理** を備えた Web アプリケーション（MVP）。
 
-OpenDesign の画面設計（`index.html`・`docs/05-画面設計書.md`）と承認済み要件（`docs/01-要件定義書.md`）に基づき、Cloudflare Workers + Neon PostgreSQL 上に構築している。
+OpenDesign の画面設計（`index.html`・`docs/05-画面設計書.md`）と承認済み要件（`docs/01-要件定義書.md`）に基づき、Cloudflare Workers + D1（SQLite）上に構築している。
 
 ## 稼働環境（URL）
 
@@ -20,7 +20,7 @@ OpenDesign の画面設計（`index.html`・`docs/05-画面設計書.md`）と�
 |----|------|
 | フロントエンド | React 19 + Vite + TypeScript（`web/`） |
 | バックエンド | Cloudflare Workers + Hono + Zod（`src/`） |
-| DB | Neon PostgreSQL（HTTP SQL / `@neondatabase/serverless` 相当の独自クライアント） |
+| DB | Cloudflare D1（SQLite / 独自クライアント。Neon は 2026-08-31 廃止） |
 | 認証 | セッションベース（PBKDF2 ハッシュ + sessions テーブル） |
 | RBAC | viewer < operator < manager < admin |
 | テスト | node --test（単体・統合）+ Playwright（E2E） |
@@ -38,7 +38,7 @@ OpenDesign の画面設計（`index.html`・`docs/05-画面設計書.md`）と�
 ├── src/                                # Cloudflare Workers (Hono) API
 │   ├── app.ts / middleware.ts / auth.ts / static-server.ts
 │   ├── routes/                         # auth / dashboard / modules / misc / crud
-│   └── db/client.ts                    # Neon HTTP SQL クライアント
+│   └── db/client.ts                    # D1 (SQLite) クライアント
 ├── web/                                # React + Vite フロントエンド
 ├── tests/                              # unit / integration / e2e
 ├── .github/workflows/ci.yml            # CI/CD
@@ -48,7 +48,7 @@ OpenDesign の画面設計（`index.html`・`docs/05-画面設計書.md`）と�
 ## セットアップ
 
 ```bash
-cp .env.example .env   # DATABASE_URL / SESSION_SECRET / CLOUDFLARE_* を設定
+cp .env.example .env   # D1_DATABASE_ID / SESSION_SECRET / CLOUDFLARE_* を設定
 npm ci
 npm run dev            # フロント（Vite）+ API（Hono dev server）を同時起動
 ```
@@ -56,14 +56,14 @@ npm run dev            # フロント（Vite）+ API（Hono dev server）を同�
 ## DB マイグレーション・シード
 
 ```bash
-npm run db:migrate     # migrations/*.sql を未適用分のみ psql で適用
+npm run db:migrate     # migrations/*.sql を未適用分のみ D1 へ適用（既定: 本番 D1 / --local でローカル）
 npm run db:seed        # デモユーザー・ダミーデータを投入（冪等）
 ```
 
 空の検証 DB への再実行:
 
 ```bash
-# Neon で検証用ブランチ/DB を用意し、DATABASE_URL を切り替えて実行
+# ローカル（--local）または本番 D1（既定）へ適用
 npm run db:migrate && npm run db:seed
 ```
 
@@ -73,8 +73,8 @@ npm run db:migrate && npm run db:seed
 npm run lint          # ESLint（--max-warnings 0）
 npm run typecheck     # tsc（src + web）
 npm run test:unit     # 単体テスト（認証・SLA計算等）
-npm run test:integration  # 統合テスト（実DB）
-npm run test:e2e      # Playwright E2E（事前に wrangler dev --port 8793 起動）
+npm run test:integration  # 統合テスト（ローカル D1 in-memory / 外部依存なし）
+npm run test:e2e      # Playwright E2E（事前に npm run dev または PORT=8793 SEED_ON_START=true node --import tsx src/dev-server.ts 起動）
 npm run build:all     # web build + worker build
 ```
 
@@ -83,9 +83,9 @@ npm run build:all     # web build + worker build
 GitHub Actions（`.github/workflows/ci.yml`）が以下を実行する:
 
 1. **quality**: lint / typecheck / 単体テスト / フロントビルド / ワーカービルド
-2. **e2e**: ローカルワーカー + Neon 検証 DB で Playwright E2E
-3. **integration**（main push 時）: Neon 検証 DB へ migrate + seed + 統合テスト
-4. **deploy**（main push 時）: `scripts/deploy.mjs` で Cloudflare Workers へデプロイ（`--secrets` で DATABASE_URL / SESSION_SECRET を設定）
+2. **e2e**: ローカルワーカー + ローカル D1（node:sqlite）で Playwright E2E
+3. **integration**（main push 時）: ローカル D1（in-memory）で統合テスト
+4. **deploy**（main push 時）: `scripts/deploy.mjs` で Cloudflare Workers へデプロイ（D1 バインディング + `--secrets` で SESSION_SECRET を設定）
 
 手動デプロイ:
 
@@ -138,7 +138,7 @@ DB スキーマ変更は原則追加マイグレーションのみ（`migrations
 - アカウントロック（連続失敗時の一時ロック）は未実装（レート制限は login に適用済み）
 - 多要素認証・外部ID連携（SAML/OIDC）は未実装（要件 Phase 3 対象）
 - 監査ログの長期保存・エクスポートは未実装
-- バックアップは Neon のブランチ/タイムトラベル機能に依存（外部バックアップは未設定）
+- バックアップは Cloudflare D1 のバックアップ機能に依存（外部バックアップは未設定）
 - 詳細は `docs/07-運用設計書.md` および GitHub Issue を参照
 
 ## ライセンス

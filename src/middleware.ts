@@ -1,6 +1,6 @@
 /** Hono ミドルウェア: 認証 / RBAC / CSRF / レート制限 / エラーハンドリング */
 import type { Context, Next } from 'hono';
-import { NeonClient } from './db/client.ts';
+import { D1Client } from './db/client.ts';
 import { hashToken } from './auth.ts';
 import { Errors, AppError } from './errors.ts';
 import { ROLE_RANK } from './config.ts';
@@ -12,7 +12,7 @@ export const SESSION_COOKIE = 'itsm_session';
 export function dbProvider() {
   return async (c: Context<AppEnv>, next: Next) => {
     if (!c.get('db')) {
-      const db = new NeonClient(c.env.DATABASE_URL);
+      const db = new D1Client(c.env.DB);
       c.set('db', db);
     }
     await next();

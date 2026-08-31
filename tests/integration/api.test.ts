@@ -1,21 +1,21 @@
 /**
- * 統合テスト: API + Neon DB（実DBを使用）
+ * 統合テスト: API + ローカル D1（node:sqlite / in-memory）
  * 実行: npm run test:integration
- * 前提: .env の DATABASE_URL が有効であること
+ * 外部依存なし（マイグレーション + シードをメモリ内DBへ適用して検証する）
  */
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createApp } from '../../src/app.ts';
-import { NeonClient } from '../../src/db/client.ts';
-import { loadLocalEnv } from '../../scripts/lib-env.ts';
+import { LocalD1 } from '../../src/db/local-d1.ts';
+import { applyMigrations } from '../../scripts/migrate-core.ts';
+import { runSeed } from '../../scripts/seed-core.ts';
 import { hashPassword } from '../../src/auth.ts';
 
-const env = loadLocalEnv();
-const db = new NeonClient(env.DATABASE_URL!);
+let localD1: LocalD1;
 const app = createApp();
 const bindings = {
-  DATABASE_URL: env.DATABASE_URL,
-  SESSION_SECRET: env.SESSION_SECRET ?? 'test-secret',
+  DB: undefined as unknown,
+  SESSION_SECRET: 'test-secret',
   ENVIRONMENT: 'test',
   APP_NAME: 'itsm-management',
 };
@@ -41,24 +41,32 @@ let viewerCookie = '';
 let testIncidentId = '';
 
 before(async () => {
+  // メモリ内 D1 を用意し、マイグレーション + シードを適用
+  localD1 = new LocalD1();
+  await applyMigrations(localD1);
+  await runSeed(localD1, { SEED_DEMO_PASSWORD: 'Mirai#2026' });
+  bindings.DB = localD1;
+
   // テストユーザーを確実に作成
   const passwordHash = await hashPassword('Mirai#2026');
-  await db.query(
-    `INSERT INTO users (username, display_name, email, password_hash, role, department)
-     VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (username) DO NOTHING`,
-    ['qa_admin', 'QA管理者', 'qa_admin@example.com', passwordHash, 'admin', 'IT管理課'],
-  );
-  await db.query(
-    `INSERT INTO users (username, display_name, email, password_hash, role, department)
-     VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (username) DO NOTHING`,
-    ['qa_viewer', 'QA閲覧者', 'qa_viewer@example.com', passwordHash, 'viewer', '総務部'],
-  );
+  await localD1
+    .prepare(
+      `INSERT INTO users (username, display_name, email, password_hash, role, department)
+       VALUES (?1,?2,?3,?4,?5,?6) ON CONFLICT (username) DO NOTHING`,
+    )
+    .bind('qa_admin', 'QA管理者', 'qa_admin@example.com', passwordHash, 'admin', 'IT管理課')
+    .run();
+  await localD1
+    .prepare(
+      `INSERT INTO users (username, display_name, email, password_hash, role, department)
+       VALUES (?1,?2,?3,?4,?5,?6) ON CONFLICT (username) DO NOTHING`,
+    )
+    .bind('qa_viewer', 'QA閲覧者', 'qa_viewer@example.com', passwordHash, 'viewer', '総務部')
+    .run();
 });
 
-after(async () => {
-  // テストデータをクリーンアップ
-  await db.query(`DELETE FROM incidents WHERE title LIKE 'QAテスト%'`).catch(() => {});
-  await db.query(`DELETE FROM users WHERE username IN ('qa_admin','qa_viewer')`).catch(() => {});
+after(() => {
+  localD1?.close();
 });
 
 test('認証なしで一覧 → 401', async () => {
@@ -149,6 +157,13 @@ test('ダッシュボードサマリ → 200 + 数値', async () => {
   assert.equal(res.status, 200);
   assert.ok(typeof res.body.total === 'number');
   assert.ok(typeof res.body.slaRate === 'number');
+});
+
+test('ダッシュボード推移 → 200', async () => {
+  const res = await call('/api/dashboard/trend', { cookie: adminCookie });
+  assert.equal(res.status, 200);
+  assert.ok(Array.isArray(res.body));
+  assert.equal(res.body.length, 7);
 });
 
 test('adminでインシデント削除 → 204', async () => {

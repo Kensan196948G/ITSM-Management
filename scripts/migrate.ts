@@ -1,16 +1,20 @@
 /**
- * DB マイグレーション適用スクリプト
- *   node --import tsx scripts/migrate.ts [--dry-run]
- * .env の DATABASE_URL を参照し、migrations/*.sql を未適用分のみ psql で適用する。
+ * DB マイグレーション適用スクリプト（Cloudflare D1）
+ *   node --import tsx scripts/migrate.ts [--local] [--dry-run]
+ *
+ * 既定では .env の CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN / D1_DATABASE_ID を
+ * 用いて本番 D1 へ適用する。--local を付けると node:sqlite のローカルDBへ適用する。
+ * migrations/*.sql を未適用分のみ文単位で適用する（schema_migrations で管理・冪等）。
  */
-import { execFileSync } from 'node:child_process';
-import { readdirSync, readFileSync, existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { NeonClient } from '../src/db/client.ts';
+import { applyMigrations } from './migrate-core.ts';
+import { LocalD1 } from '../src/db/local-d1.ts';
+import { createRemoteD1FromEnv } from './lib-d1-http.ts';
+import type { D1Like } from '../src/db/client.ts';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const dryRun = process.argv.includes('--dry-run');
 
 function loadEnv(): Record<string, string> {
   const envFile = join(root, '.env');
@@ -28,37 +32,29 @@ function loadEnv(): Record<string, string> {
 
 async function main() {
   const env = loadEnv();
-  const url = env.DATABASE_URL;
-  if (!url) {
-    console.error('DATABASE_URL がありません');
-    process.exit(1);
-  }
-  const db = new NeonClient(url);
+  const useLocal = process.argv.includes('--local');
+  const dryRun = process.argv.includes('--dry-run');
 
-  await db.query(`CREATE TABLE IF NOT EXISTS schema_migrations (
-    filename text PRIMARY KEY,
-    applied_at timestamptz NOT NULL DEFAULT now()
-  )`);
-  const appliedRows = await db.query('SELECT filename FROM schema_migrations');
-  const applied = new Set(appliedRows.rows.map((r) => String(r.filename)));
-
-  const files = readdirSync(join(root, 'migrations')).filter((f) => f.endsWith('.sql')).sort();
-  let count = 0;
-  for (const file of files) {
-    if (applied.has(file)) {
-      console.log(`skip    ${file} (already applied)`);
-      continue;
-    }
-    console.log(`apply   ${file}${dryRun ? ' [dry-run]' : ''}`);
-    if (!dryRun) {
-      execFileSync('psql', [url, '-v', 'ON_ERROR_STOP=1', '-f', join(root, 'migrations', file)], {
-        stdio: ['ignore', 'inherit', 'inherit'],
-      });
-      await db.query('INSERT INTO schema_migrations (filename) VALUES ($1)', [file]);
-    }
-    count++;
+  let db: D1Like;
+  if (useLocal) {
+    db = new LocalD1();
+    console.log('対象: ローカル D1（node:sqlite, in-memory）');
+  } else {
+    db = createRemoteD1FromEnv(env);
+    console.log(`対象: 本番 D1（${env.D1_DATABASE_ID ?? ''}）`);
   }
-  console.log(dryRun ? `[dry-run] ${count} 件を適用予定` : `${count} 件を適用しました`);
+
+  if (dryRun) {
+    console.log('[dry-run] 対象SQLファイル:');
+    const { readdirSync } = await import('node:fs');
+    for (const f of readdirSync(join(root, 'migrations')).filter((x) => x.endsWith('.sql')).sort()) {
+      console.log(`  ${f}`);
+    }
+    process.exit(0);
+  }
+
+  await applyMigrations(db);
+  console.log('マイグレーション完了');
 }
 
 main().catch((e) => {

@@ -1,27 +1,37 @@
 /**
  * 共通ユーティリティ: チケット採番 / SLA計算 / ページング / 監査ログ
  */
-import { NeonClient } from './db/client.ts';
+import { D1Client } from './db/client.ts';
 import { SLA_HOURS, SLA_RISK_THRESHOLD_HOURS } from './config.ts';
 import type { SlaStatus } from './types.ts';
 
+/** DBクライアント型（D1Client / ローカルアダプタ） */
+export type DbLike = D1Client;
+
 /** チケット番号採番（INC-2026-0001 形式） */
 export async function generateTicketNo(
-  db: NeonClient,
+  db: DbLike,
   table: string,
   prefix: string,
   ticketColumn = 'ticket_no',
 ): Promise<string> {
   const year = new Date().getFullYear();
-  // 現在年度内の最大連番を取得
-  const res = await db.queryOne<{ max_seq: string | null }>(
-    `SELECT MAX(SUBSTRING(${table}.${ticketColumn} FROM '([0-9]+)$')) AS max_seq
-     FROM ${table}
+  // 現在年度内の該当チケット番号を取得し、連番の最大値を JS 側で計算する
+  // （SQLite は PG の SUBSTRING(col FROM 'regex') をサポートしないため）
+  const res = await db.query(
+    `SELECT ${ticketColumn} FROM ${table}
      WHERE ${ticketColumn} LIKE $1`,
     [`${prefix}-${year}-%`],
   );
-  const next = (parseInt(res?.max_seq ?? '0', 10) || 0) + 1;
-  return `${prefix}-${year}-${String(next).padStart(4, '0')}`;
+  let maxSeq = 0;
+  for (const r of res.rows) {
+    const m = /(\d+)$/.exec(String(r[ticketColumn] ?? ''));
+    if (m) {
+      const seq = parseInt(m[1], 10);
+      if (seq > maxSeq) maxSeq = seq;
+    }
+  }
+  return `${prefix}-${year}-${String(maxSeq + 1).padStart(4, '0')}`;
 }
 
 /** SLA 状態計算（safe / risk / urgent）。フロントのSLAPill仕様と一致 */
@@ -79,7 +89,7 @@ export function buildWhere(
 
 /** 監査ログ記録 */
 export async function writeAudit(
-  db: NeonClient,
+  db: DbLike,
   args: {
     entityType: string;
     entityId: string;

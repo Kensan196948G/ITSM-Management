@@ -4,7 +4,7 @@
   "private": true,
   "license": "UNLICENSED",
   "type": "module",
-  "description": "ITSM Management / Service Desk（Cloudflare Workers + Neon Postgres + React/Vite）",
+  "description": "ITSM Management / Service Desk（Cloudflare Workers + D1 SQLite + React/Vite）",
   "engines": {
     "node": ">=22.12.0"
   },
