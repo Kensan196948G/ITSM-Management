@@ -25,11 +25,15 @@ export class D1HttpError extends Error {
 }
 
 class HttpPrepared implements D1PreparedLike {
-  constructor(
-    private adapter: RemoteD1,
-    private sql: string,
-    private values: unknown[] = [],
-  ) {}
+  private adapter: RemoteD1;
+  private sql: string;
+  private values: unknown[];
+
+  constructor(adapter: RemoteD1, sql: string, values: unknown[] = []) {
+    this.adapter = adapter;
+    this.sql = sql;
+    this.values = values;
+  }
 
   bind(...values: unknown[]): D1PreparedLike {
     return new HttpPrepared(this.adapter, this.sql, values);
