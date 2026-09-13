@@ -1,5 +1,5 @@
 /** 汎用モジュールビュー（一覧・検索・フィルタ・CRUD・詳細） */
-import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { api, buildQuery, type ListResult } from '../api';
 import { DataTable, Pagination, Modal, ConfirmDialog, Field, type Column } from '../components/ui.tsx';
 import { PRIORITY_LABEL, fmtDate, toDateTimeLocal, fromDateTimeLocal } from '../types.ts';
@@ -249,16 +249,6 @@ export function ModuleView<T extends { id: string }>({ cfg }: { cfg: ModuleConfi
         ))}
       </div>
     </div>
-  );
-}
-
-/** 詳細モーダル用共通フォーマッタ */
-export function DetailRow({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <>
-      <dt>{label}</dt>
-      <dd>{value}</dd>
-    </>
   );
 }
 

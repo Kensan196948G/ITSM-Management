@@ -147,6 +147,15 @@ DB スキーマ変更は原則追加マイグレーションのみ（`migrations
 - バックアップは Cloudflare D1 のバックアップ機能に依存（外部バックアップは未設定）
 - 詳細は `docs/07-運用設計書.md` および GitHub Issue を参照
 
+### Deep Debug で確認した運用上の未解決事項（2026-09-13）
+
+- **`main` の Branch Protection が未設定**: PR を経由しない直接 push が可能な状態。Required Status Checks（quality / e2e）の強制には別途リポジトリ設定が必要
+- **本番 `/api/health` が Cloudflare Access で 302**: カスタムドメイン配下のため未認証の外形監視は 200 を取得できない。`docs/07-運用設計書.md` §6.4 のロールバック判断基準（`/api/health` が 200 以外）と §6.5 の監視を機能させるには、Access に `/api/health` の Bypass ポリシーを追加するか、監視対象を `workers.dev` へ変更する必要がある
+- **`SESSION_SECRET` は実装で未使用**: セッションはランダム 32byte トークン + SHA-256 ハッシュで完結しており署名鍵を必要としない。`.env` / GitHub Actions Secrets / Cloudflare Secrets に存在するが `src/` からの参照は無い。削除して文書を整合させるか、署名検証を実装するかの判断が必要
+- **統合テストのカバレッジ**: `tests/integration/api.test.ts` は incidents を代表として検証しており、users / problems / changes / cmdb / knowledge / assets / patches / security_events / service_requests は未カバー
+- **フロントの 401 処理**: `web/src/api.ts` が 401 を検知してログイン画面へ戻す（Deep Debug で実装済み）
+- **`GET /api/users` は admin のみ**（`docs/06-セキュリティ設計書.md` §3.2 に準拠。manager は参照・書込ともに不可）
+
 ## ライセンス
 
 UNLICENSED（プライベートリポジトリ）
