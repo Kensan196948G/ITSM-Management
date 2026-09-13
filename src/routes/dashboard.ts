@@ -47,18 +47,29 @@ dashboardRoutes.get('/summary', async (c) => {
   );
   const overdue = Number(overdueRes?.overdue ?? 0);
 
-  // モジュール別件数は UNION ALL で 1 ラウンドトリップにまとめる
-  const counts = await db.query(
-    `SELECT 'problems' AS k, COUNT(*) AS c FROM problems
-     UNION ALL SELECT 'changes', COUNT(*) FROM changes
-     UNION ALL SELECT 'assets', COUNT(*) FROM assets
-     UNION ALL SELECT 'security_events', COUNT(*) FROM security_events
-     UNION ALL SELECT 'cmdb_items', COUNT(*) FROM cmdb_items
-     UNION ALL SELECT 'knowledge_articles', COUNT(*) FROM knowledge_articles
-     UNION ALL SELECT 'patches', COUNT(*) FROM patches
-     UNION ALL SELECT 'service_requests', COUNT(*) FROM service_requests`,
+  // モジュール別件数は 1 ラウンドトリップにまとめる。
+  // UNION ALL は使えない: Cloudflare D1 の SQLITE_MAX_COMPOUND_SELECT は 5 で、
+  // 8 テーブルを UNION ALL で結合すると本番だけ
+  // "too many terms in compound SELECT" で 500 になる
+  // （ローカルの node:sqlite は上限 500 のため検出できない）。
+  // D1 の batch は SELECT も受け付けるので 8 文を 1 リクエストで実行する。
+  // テーブル名と API レスポンスのキーを明示的に対応付ける。
+  // （以前はキーを取り違え、security/cmdb/knowledge/requests が常に 0 になっていた）
+  const countSources = [
+    { table: 'problems', key: 'problems' },
+    { table: 'changes', key: 'changes' },
+    { table: 'assets', key: 'assets' },
+    { table: 'security_events', key: 'security' },
+    { table: 'cmdb_items', key: 'cmdb' },
+    { table: 'knowledge_articles', key: 'knowledge' },
+    { table: 'patches', key: 'patches' },
+    { table: 'service_requests', key: 'requests' },
+  ] as const;
+  const countRows = await db.queryMany(
+    countSources.map(({ table }) => ({ sql: `SELECT COUNT(*) AS c FROM ${table}` })),
   );
-  const byKey = new Map(counts.rows.map((r) => [String(r.k), Number(r.c)]));
+  const byKey = new Map<string, number>();
+  countSources.forEach(({ key }, i) => byKey.set(key, Number(countRows[i]?.rows[0]?.c ?? 0)));
   const cnt = (key: string) => byKey.get(key) ?? 0;
 
   return c.json({
@@ -71,11 +82,11 @@ dashboardRoutes.get('/summary', async (c) => {
     problems: cnt('problems'),
     changes: cnt('changes'),
     assets: cnt('assets'),
-    security: cnt('security_events'),
-    cmdb: cnt('cmdb_items'),
-    knowledge: cnt('knowledge_articles'),
+    security: cnt('security'),
+    cmdb: cnt('cmdb'),
+    knowledge: cnt('knowledge'),
     patches: cnt('patches'),
-    requests: cnt('service_requests'),
+    requests: cnt('requests'),
   });
 });
 
