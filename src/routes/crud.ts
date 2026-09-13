@@ -8,6 +8,9 @@ import { parseListParams, buildWhere, writeAudit, generateTicketNo } from '../ut
 import { ROLE_RANK } from '../config.ts';
 import type { AppEnv, Role } from '../types.ts';
 
+/** フィールドの型 */
+export type CrudFieldType = 'string' | 'number' | 'date' | 'boolean';
+
 export interface CrudField {
   /** 受け入れ可能なDBカラム名 */
   column: string;
@@ -17,17 +20,88 @@ export interface CrudField {
   required?: boolean;
   /** 許可値（enum） */
   allowed?: string[];
+  /** 期待する型（省略時は string） */
+  type?: CrudFieldType;
+  /** 文字列の最大長（超過は 400） */
+  maxLength?: number;
+  /** 数値の下限（この値以上） */
+  min?: number;
+  /** 数値の上限（この値以下） */
+  max?: number;
 }
 
+/** エラーメッセージ用の型名 */
+const TYPE_LABEL: Record<CrudFieldType, string> = {
+  string: '文字列',
+  number: '数値',
+  date: '日時',
+  boolean: '真偽値',
+};
+
 /**
- * 入力値の正規化。
- * 文字列は前後の空白を除去し（'   ' を空文字＝未入力として扱う）、
- * 空文字は undefined へ寄せる（任意項目を NULL として保存するため）。
+ * フィールド定義に従って入力を検証し、保存用の値へ正規化する。
+ *
+ * 検証が無いと SQLite は型に寛容なため、数値カラムへ文字列が入る、
+ * 日付カラムへ任意文字列が入る、文字列カラムへ配列やオブジェクトが
+ * 入る、といった不整合がそのまま保存されてしまう。
+ *
+ * @returns 正規化済みの値（未入力なら undefined）
+ * @throws AppError(400) 検証に失敗した場合
  */
-function normalizeText(value: unknown): unknown {
-  if (typeof value !== 'string') return value;
-  const trimmed = value.trim();
-  return trimmed === '' ? undefined : trimmed;
+function coerceFieldValue(f: CrudField, key: string, raw: unknown): unknown {
+  const type = f.type ?? 'string';
+
+  // null は「値のクリア」として許可する（必須項目は呼び出し側で別途拒否）
+  if (raw === null) return null;
+
+  switch (type) {
+    case 'string': {
+      if (typeof raw !== 'string') {
+        throw Errors.badRequest(`${key}は${TYPE_LABEL.string}で指定してください`);
+      }
+      const trimmed = raw.trim();
+      if (trimmed === '') return undefined;
+      if (f.maxLength !== undefined && trimmed.length > f.maxLength) {
+        throw Errors.badRequest(`${key}は${f.maxLength}文字以内で指定してください`);
+      }
+      return trimmed;
+    }
+    case 'number': {
+      const n = typeof raw === 'number' ? raw : typeof raw === 'string' && raw.trim() !== '' ? Number(raw) : NaN;
+      if (!Number.isFinite(n)) {
+        throw Errors.badRequest(`${key}は${TYPE_LABEL.number}で指定してください`);
+      }
+      if (f.min !== undefined && n < f.min) {
+        throw Errors.badRequest(`${key}は${f.min}以上で指定してください`);
+      }
+      if (f.max !== undefined && n > f.max) {
+        throw Errors.badRequest(`${key}は${f.max}以下で指定してください`);
+      }
+      return n;
+    }
+    case 'date': {
+      if (typeof raw !== 'string') {
+        throw Errors.badRequest(`${key}は${TYPE_LABEL.date}（ISO-8601）で指定してください`);
+      }
+      const trimmed = raw.trim();
+      if (trimmed === '') return undefined;
+      // 実在しない日付（2026-99-99 等）は new Date が Invalid Date を返す
+      if (Number.isNaN(new Date(trimmed).getTime())) {
+        throw Errors.badRequest(`${key}は正しい日時（ISO-8601）で指定してください`);
+      }
+      return trimmed;
+    }
+    case 'boolean': {
+      if (typeof raw === 'boolean') return raw;
+      if (raw === 1 || raw === '1' || raw === 'true') return true;
+      if (raw === 0 || raw === '0' || raw === 'false') return false;
+      throw Errors.badRequest(`${key}は${TYPE_LABEL.boolean}で指定してください`);
+    }
+    default: {
+      // 未知の型指定はバグとして扱う（保存はしない）
+      throw Errors.badRequest(`${key}の型定義が不正です`);
+    }
+  }
 }
 
 export interface CrudConfig {
@@ -127,12 +201,12 @@ export function createCrudRouter(cfg: CrudConfig): Hono<AppEnv> {
 
     for (const f of cfg.fields) {
       const key = f.key ?? f.column;
-      const raw: unknown = (body as Record<string, unknown>)[key];
-      const value = normalizeText(raw);
+      const has = Object.prototype.hasOwnProperty.call(body, key);
+      const value = has ? coerceFieldValue(f, key, (body as Record<string, unknown>)[key]) : undefined;
       // 空文字・空白のみは「未入力」として扱う。
       // 以前は '' のみを未入力としていたため、'   ' が必須チェックを通過し、
       // タイトルが空白だけのチケットが登録できてしまっていた。
-      if (value === undefined || value === null || value === '') {
+      if (value === undefined || value === null) {
         if (f.required) throw Errors.badRequest(`${key}は必須です`);
         continue;
       }
@@ -196,10 +270,10 @@ export function createCrudRouter(cfg: CrudConfig): Hono<AppEnv> {
     for (const f of allFields) {
       const key = f.key ?? f.column;
       if (!(key in (body as Record<string, unknown>))) continue;
-      const value = normalizeText((body as Record<string, unknown>)[key]);
+      const value = coerceFieldValue(f, key, (body as Record<string, unknown>)[key]);
       // 必須項目を空文字・空白のみへ更新することを禁止する
       // （作成時と同様、'   ' が必須チェックをすり抜けてしまうため）
-      if (f.required && (value === undefined || value === null || value === '')) {
+      if (f.required && (value === undefined || value === null)) {
         throw Errors.badRequest(`${key}は必須です`);
       }
       if (f.allowed && value !== null && value !== undefined && !f.allowed.includes(String(value))) {
