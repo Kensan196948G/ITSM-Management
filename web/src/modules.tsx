@@ -4,6 +4,13 @@ import { Pill } from './components/ui.tsx';
 import type { Incident, Problem, Change, CmdbItem, KnowledgeArticle, Asset, Patch, SecurityEvent, ServiceRequest } from './types.ts';
 import { fmtDate } from './types.ts';
 
+/**
+ * SLA リスク閾値（この時間以内なら「注意」）。
+ * サーバー側 src/config.ts の SLA_RISK_THRESHOLD_HOURS と一致させること。
+ * （以前はここに 2 時間が直書きされており、設定変更時に乖離する恐れがあった）
+ */
+const SLA_RISK_THRESHOLD_HOURS = 2;
+
 /** SLAピル（安全/注意/超過/遵守/違反） */
 export function SLAPill({ dueAt, resolvedAt }: { dueAt: string | null; resolvedAt: string | null }) {
   if (!dueAt) return <span style={{ color: 'var(--muted-2)', fontSize: 11.5 }}>—</span>;
@@ -14,7 +21,7 @@ export function SLAPill({ dueAt, resolvedAt }: { dueAt: string | null; resolvedA
   }
   const remaining = due - Date.now();
   if (remaining < 0) return <span className="pill pill--danger">超過</span>;
-  if (remaining < 2 * 3600 * 1000) return <span className="pill pill--warning">注意</span>;
+  if (remaining < SLA_RISK_THRESHOLD_HOURS * 3600 * 1000) return <span className="pill pill--warning">注意</span>;
   return <span className="pill pill--success">安全</span>;
 }
 

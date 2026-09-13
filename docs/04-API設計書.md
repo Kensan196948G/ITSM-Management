@@ -60,7 +60,7 @@ Authorization: Bearer <access_token>
 | パラメータ | 型 | 説明 |
 |------------|-----|------|
 | skip | integer | スキップ件数（default 0） |
-| limit | integer | 取得件数（default 50） |
+| limit | integer | 取得件数（default 10 / 上限 100） |
 | keyword | string | タイトル・説明の部分一致検索 |
 | status / priority / assignee_id / site / system_name 等 | string/integer | モジュール別フィルタ |
 
@@ -332,7 +332,7 @@ Refresh Token によるトークン再発行。
 
 ### 3.7 監査ログ
 
-#### `GET /api/audit_logs` — 監査ログ一覧（admin）
+#### `GET /api/audit_logs` — 監査ログ一覧（admin / manager）
 
 **クエリパラメータ**: entity_type / entity_id / action / user_id
 

@@ -18,6 +18,9 @@ export class ApiError extends Error {
   }
 }
 
+/** セッション失効をアプリ全体へ通知するイベント名 */
+export const UNAUTHORIZED_EVENT = 'itsm:unauthorized';
+
 export interface ListResult<T> {
   items: T[];
   total: number;
@@ -44,6 +47,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
   if (!res.ok) {
     const err = body as ApiErrorBody;
+    // セッション失効（401）はアプリ全体へ通知し、ログイン画面へ戻せるようにする。
+    // 以前は各画面がエラートーストを出すだけで、操作不能のまま留まっていた。
+    if (res.status === 401 && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT));
+    }
     throw new ApiError(res.status, err?.error?.message ?? `APIエラー (${res.status})`, err?.error?.code ?? 'API_ERROR');
   }
   return body as T;

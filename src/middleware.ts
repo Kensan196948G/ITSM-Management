@@ -149,8 +149,23 @@ export const SECURITY_HEADERS = {
 
 /** セキュリティヘッダー適用 */
 export async function securityHeaders(c: Context<AppEnv>, next: Next) {
+  // 先に下流を実行し、最終レスポンスの Content-Type を確定させる
   await next();
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) {
+    // 静的アセット（HTML/CSS/JS）は static-server が用途別の Cache-Control を設定する。
+    // ここで no-store を上書きすると、ハッシュ付きアセットまで毎回再ダウンロードになる。
+    // Content-Type と X-Content-Type-Options は static-server 側で個別に付与済み。
+    if (k === 'Cache-Control' && isStaticAssetResponse(c)) continue;
     c.header(k, v);
   }
+}
+
+/** 最終レスポンスが静的アセット（HTML/CSS/JS）かどうか */
+function isStaticAssetResponse(c: Context<AppEnv>): boolean {
+  const ct = c.res.headers.get('Content-Type') ?? '';
+  return (
+    ct.startsWith('text/html') ||
+    ct.startsWith('text/css') ||
+    ct.startsWith('application/javascript')
+  );
 }

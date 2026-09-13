@@ -2,7 +2,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api, buildQuery, type ListResult } from '../api';
 import { DataTable, Pagination, Modal, ConfirmDialog, Field, type Column } from '../components/ui.tsx';
-import { PRIORITY_LABEL, fmtDate } from '../types.ts';
+import { PRIORITY_LABEL, fmtDate, toDateTimeLocal, fromDateTimeLocal } from '../types.ts';
 import { useAuth } from '../auth.tsx';
 
 export interface ModuleConfig<T> {
@@ -200,8 +200,20 @@ export function ModuleView<T extends { id: string }>({ cfg }: { cfg: ModuleConfi
                   ))}
                 </select>
               ) : (
-                <input type={f.type === 'number' ? 'number' : f.type === 'date' ? 'datetime-local' : 'text'}
-                  value={String(formData[f.key] ?? '')} onChange={(e) => setFormData((p) => ({ ...p, [f.key]: e.target.value }))} />
+                <input
+                  type={f.type === 'number' ? 'number' : f.type === 'date' ? 'datetime-local' : 'text'}
+                  value={
+                    f.type === 'date'
+                      ? toDateTimeLocal(String(formData[f.key] ?? ''))
+                      : String(formData[f.key] ?? '')
+                  }
+                  onChange={(e) =>
+                    setFormData((p) => ({
+                      ...p,
+                      [f.key]: f.type === 'date' ? fromDateTimeLocal(e.target.value) : e.target.value,
+                    }))
+                  }
+                />
               )}
             </Field>
           ))}
