@@ -1,6 +1,6 @@
 /** 認証状態管理（Context） */
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
-import { api } from './api';
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
+import { api, UNAUTHORIZED_EVENT } from './api';
 import type { User } from './types';
 
 interface AuthState {
@@ -46,6 +46,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // ignore
     }
     setUser(null);
+  }, []);
+
+  // セッション失効（401）を検知したらログイン画面へ戻す
+  useEffect(() => {
+    const onUnauthorized = () => setUser(null);
+    window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
+    return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
   }, []);
 
   return (

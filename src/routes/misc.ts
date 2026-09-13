@@ -11,7 +11,10 @@ export const userRoutes = new Hono<AppEnv>();
 userRoutes.get('/', async (c) => {
   const user = c.get('user');
   if (!user) throw Errors.unauthorized();
-  if (user.role !== 'admin' && user.role !== 'manager') throw Errors.forbidden();
+  // ユーザー一覧は管理操作の一部として admin に限定する。
+  // （docs/06-セキュリティ設計書.md §3.2 権限マトリクス「ユーザー管理 = admin のみ」に準拠。
+  //   以前は manager にも許可されており、書き込み不可の管理 UI が表示される原因になっていた）
+  if (user.role !== 'admin') throw Errors.forbidden();
   const db = c.get('db');
   const res = await db.query(
     'SELECT id, username, display_name, email, role, department, is_active, created_at FROM users ORDER BY display_name',

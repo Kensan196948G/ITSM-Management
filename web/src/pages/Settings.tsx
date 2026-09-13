@@ -7,9 +7,13 @@ import { useAuth } from '../auth';
 
 export function SettingsPage({ isDark, onToggleDark }: { isDark: boolean; onToggleDark: () => void }) {
   const { user } = useAuth();
-  const canAdmin = user ? ['manager', 'admin'].includes(user.role) : false;
+  // ユーザー・ロール管理と監査ログ参照は admin のみ。
+  // （docs/06-セキュリティ設計書.md §3.2 権限マトリクスに準拠。
+  //   manager に表示しても書き込み API は 403 になるため、権限と表示を一致させる）
+  const canAdmin = user?.role === 'admin';
   const [users, setUsers] = useState<User[]>([]);
   const [audits, setAudits] = useState<AuditLog[]>([]);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!canAdmin) return;
@@ -21,8 +25,10 @@ export function SettingsPage({ isDark, onToggleDark }: { isDark: boolean; onTogg
         ]);
         setUsers(u);
         setAudits(a.items);
-      } catch {
-        // ignore
+        setError('');
+      } catch (e) {
+        // 失敗を無言で握りつぶさない（以前は catch {} で何も表示されなかった）
+        setError(e instanceof Error ? e.message : '設定情報の取得に失敗しました');
       }
     })();
   }, [canAdmin]);
@@ -67,6 +73,7 @@ export function SettingsPage({ isDark, onToggleDark }: { isDark: boolean; onTogg
 
       {canAdmin && (
         <>
+          {error && <div className="login-error" role="alert" style={{ marginBottom: 12 }}>{error}</div>}
           <div className="card" style={{ marginBottom: 16 }}>
             <div className="card__head"><h3>ユーザー・ロール管理</h3><Pill value={user?.role ?? 'viewer'} /></div>
             <div style={{ padding: '14px 18px' }}>

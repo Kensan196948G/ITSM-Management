@@ -63,9 +63,15 @@ npm run db:seed        # デモユーザー・ダミーデータを投入（冪�
 空の検証 DB への再実行:
 
 ```bash
-# ローカル（--local）または本番 D1（既定）へ適用
+# ローカル検証 DB（local-d1.sqlite。--db <path> で変更可）へ適用
+npm run db:migrate -- --local
+npm run db:seed -- --local     # スキーマ未適用なら自動で適用される
+# 本番 D1（既定。.env の資格情報が必要）
 npm run db:migrate && npm run db:seed
 ```
+
+> `--local` は同一のファイル `local-d1.sqlite` を migrate / seed で共有する。
+> 検証をやり直す場合は `rm -f local-d1.sqlite` してから再実行する。
 
 ## 検証
 
@@ -115,7 +121,7 @@ DB スキーマ変更は原則追加マイグレーションのみ（`migrations
 | `GET/POST /api/incidents` ほか CRUD モジュール | 各管理 | 閲覧: 全ロール / 書込: operator 以上 |
 | `GET /api/dashboard/*` | KPI・推移・SLAリスク | 要認証 |
 | `GET /api/audit_logs` | 監査ログ | manager / admin |
-| `GET/POST/PUT /api/users` | ユーザー管理 | admin（一覧は manager 以上） |
+| `GET/POST/PUT /api/users` | ユーザー管理 | admin |
 | `GET /api/health` | ヘルスチェック | 公開 |
 
 詳細は `docs/04-API設計書.md`。

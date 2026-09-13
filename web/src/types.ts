@@ -201,3 +201,26 @@ export function fmtDate(v: string | null | undefined, short = false): string {
   const mi = String(dt.getMinutes()).padStart(2, '0');
   return short ? `${mm}/${dd} ${hh}:${mi}` : `${dt.getFullYear()}/${mm}/${dd} ${hh}:${mi}`;
 }
+
+/**
+ * API の ISO-8601(UTC) を <input type="datetime-local"> が要求する
+ * `YYYY-MM-DDTHH:mm`（ローカル時刻）へ変換する。
+ *
+ * ブラウザは "2026-09-13T10:54:32.884Z" のような値を datetime-local に
+ * 設定できないため、変換しないと編集フォームで既存値が空表示になる。
+ */
+export function toDateTimeLocal(v: string | null | undefined): string {
+  if (!v) return '';
+  const dt = new Date(v);
+  if (isNaN(dt.getTime())) return '';
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${dt.getFullYear()}-${p(dt.getMonth() + 1)}-${p(dt.getDate())}T${p(dt.getHours())}:${p(dt.getMinutes())}`;
+}
+
+/** <input type="datetime-local"> の値を API が受け取れる ISO-8601(UTC) へ戻す */
+export function fromDateTimeLocal(v: string | null | undefined): string {
+  if (!v) return '';
+  const dt = new Date(v);
+  if (isNaN(dt.getTime())) return '';
+  return dt.toISOString();
+}

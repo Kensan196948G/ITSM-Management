@@ -2,6 +2,7 @@
 import { Hono } from 'hono';
 import type { AppEnv } from '../types.ts';
 import { requireRole } from '../middleware.ts';
+import { SLA_RISK_THRESHOLD_HOURS } from '../config.ts';
 
 export const dashboardRoutes = new Hono<AppEnv>();
 
@@ -12,33 +13,53 @@ dashboardRoutes.use('*', requireRole());
 dashboardRoutes.get('/summary', async (c) => {
   const db = c.get('db');
 
-  const inc = await db.query(
-    `SELECT status, priority, due_at, resolved_at, created_at, site FROM incidents`,
+  // 集計は 2 クエリ（インシデント集計 + 他モジュール件数）に集約する。
+  // 以前は 1 + 8 の計 9 回を逐次実行しており、D1 へのラウンドトリップが
+  // そのままレイテンシになっていた（N+1 と同種の問題）。
+  const inc = await db.queryOne<{
+    total: number | string;
+    open_cnt: number | string;
+    resolved_cnt: number | string;
+    sla_ok: number | string;
+    avg_hours: number | string | null;
+  }>(
+    `SELECT COUNT(*) AS total,
+            SUM(CASE WHEN status IN ('open','in_progress','waiting') THEN 1 ELSE 0 END) AS open_cnt,
+            SUM(CASE WHEN resolved_at IS NOT NULL THEN 1 ELSE 0 END) AS resolved_cnt,
+            SUM(CASE WHEN resolved_at IS NOT NULL AND due_at IS NOT NULL AND resolved_at <= due_at THEN 1 ELSE 0 END) AS sla_ok,
+            AVG(CASE WHEN resolved_at IS NOT NULL
+                     THEN (julianday(resolved_at) - julianday(created_at)) * 24 END) AS avg_hours
+     FROM incidents`,
   );
-  const rows = inc.rows as { status: string; priority: string; due_at: string | null; resolved_at: string | null; created_at: string; site: string }[];
 
-  const total = rows.length;
-  const open = rows.filter((r) => ['open', 'in_progress', 'waiting'].includes(r.status)).length;
-  const overdue = rows.filter(
-    (r) => !['resolved', 'closed'].includes(r.status) && r.due_at && new Date(r.due_at) < new Date(),
-  ).length;
-  const resolved = rows.filter((r) => r.resolved_at).length;
-  const avgHours = resolved
-    ? Math.round(
-        (rows
-          .filter((r) => r.resolved_at)
-          .reduce((s, r) => s + (new Date(r.resolved_at!).getTime() - new Date(r.created_at).getTime()) / 3600000, 0) /
-          resolved) *
-          10,
-      ) / 10
-    : 0;
-  const slaOk = rows.filter((r) => r.resolved_at && r.due_at && new Date(r.resolved_at) <= new Date(r.due_at)).length;
+  const total = Number(inc?.total ?? 0);
+  const open = Number(inc?.open_cnt ?? 0);
+  const resolved = Number(inc?.resolved_cnt ?? 0);
+  const slaOk = Number(inc?.sla_ok ?? 0);
+  const avgHours = inc?.avg_hours == null ? 0 : Math.round(Number(inc.avg_hours) * 10) / 10;
   const slaRate = resolved ? Math.round((slaOk / resolved) * 100) : 100;
 
-  const count = async (table: string) => {
-    const r = await db.queryOne<{ total: string }>(`SELECT COUNT(*) AS total FROM ${table}`);
-    return parseInt(r?.total ?? '0', 10);
-  };
+  // 期限超過は日付比較が必要なため 1 クエリで取得して JS 側で判定する
+  const overdueRes = await db.queryOne<{ overdue: number | string }>(
+    `SELECT COUNT(*) AS overdue FROM incidents
+     WHERE status NOT IN ('resolved','closed') AND due_at IS NOT NULL AND due_at < $1`,
+    [new Date().toISOString()],
+  );
+  const overdue = Number(overdueRes?.overdue ?? 0);
+
+  // モジュール別件数は UNION ALL で 1 ラウンドトリップにまとめる
+  const counts = await db.query(
+    `SELECT 'problems' AS k, COUNT(*) AS c FROM problems
+     UNION ALL SELECT 'changes', COUNT(*) FROM changes
+     UNION ALL SELECT 'assets', COUNT(*) FROM assets
+     UNION ALL SELECT 'security_events', COUNT(*) FROM security_events
+     UNION ALL SELECT 'cmdb_items', COUNT(*) FROM cmdb_items
+     UNION ALL SELECT 'knowledge_articles', COUNT(*) FROM knowledge_articles
+     UNION ALL SELECT 'patches', COUNT(*) FROM patches
+     UNION ALL SELECT 'service_requests', COUNT(*) FROM service_requests`,
+  );
+  const byKey = new Map(counts.rows.map((r) => [String(r.k), Number(r.c)]));
+  const cnt = (key: string) => byKey.get(key) ?? 0;
 
   return c.json({
     total,
@@ -47,14 +68,14 @@ dashboardRoutes.get('/summary', async (c) => {
     resolved,
     avgHours,
     slaRate,
-    problems: await count('problems'),
-    changes: await count('changes'),
-    assets: await count('assets'),
-    security: await count('security_events'),
-    cmdb: await count('cmdb_items'),
-    knowledge: await count('knowledge_articles'),
-    patches: await count('patches'),
-    requests: await count('service_requests'),
+    problems: cnt('problems'),
+    changes: cnt('changes'),
+    assets: cnt('assets'),
+    security: cnt('security_events'),
+    cmdb: cnt('cmdb_items'),
+    knowledge: cnt('knowledge_articles'),
+    patches: cnt('patches'),
+    requests: cnt('service_requests'),
   });
 });
 
@@ -130,10 +151,11 @@ dashboardRoutes.get('/sla-risks', async (c) => {
      ORDER BY due_at ASC LIMIT 100`,
   );
   const now = Date.now();
+  const thresholdMs = SLA_RISK_THRESHOLD_HOURS * 3600 * 1000;
   const items = res.rows.filter((r: any) => {
     const due = new Date(r.due_at).getTime();
     const remaining = due - now;
-    return remaining < 2 * 3600 * 1000; // risk（2時間以内）または超過
+    return remaining < thresholdMs; // risk（閾値以内）または超過
   });
   return c.json(items);
 });

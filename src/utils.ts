@@ -2,7 +2,7 @@
  * 共通ユーティリティ: チケット採番 / SLA計算 / ページング / 監査ログ
  */
 import { D1Client } from './db/client.ts';
-import { SLA_HOURS, SLA_RISK_THRESHOLD_HOURS } from './config.ts';
+import { SLA_HOURS, SLA_RISK_THRESHOLD_HOURS, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from './config.ts';
 import type { SlaStatus } from './types.ts';
 
 /** DBクライアント型（D1Client / ローカルアダプタ） */
@@ -59,8 +59,8 @@ export function calcDueAt(priority: string, base = new Date()): string | null {
 /** 一覧クエリ共通パラメータの解析 */
 export function parseListParams(url: URL) {
   const skip = Math.max(0, parseInt(url.searchParams.get('skip') ?? '0', 10) || 0);
-  const sizeRaw = parseInt(url.searchParams.get('limit') ?? '10', 10) || 10;
-  const size = Math.min(Math.max(1, sizeRaw), 100);
+  const sizeRaw = parseInt(url.searchParams.get('limit') ?? String(DEFAULT_PAGE_SIZE), 10) || DEFAULT_PAGE_SIZE;
+  const size = Math.min(Math.max(1, sizeRaw), MAX_PAGE_SIZE);
   const keyword = url.searchParams.get('keyword')?.trim() || undefined;
   return { skip, size, keyword };
 }
