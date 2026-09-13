@@ -19,13 +19,17 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 /** ローカル検証 DB の既定パス（migrate.ts と同一。--db で変更可能） */
 const DEFAULT_LOCAL_DB = join(root, 'local-d1.sqlite');
 
+/**
+ * .env を読み込む。
+ *
+ * --local（検証DB）では .env を必要としないため、ファイルが無くても失敗させない。
+ * リモート投入時に資格情報が無い場合は createRemoteD1FromEnv 側で検出される。
+ * （CI には .env が存在しないため、以前は --local でも即終了していた）
+ */
 function loadEnv(): Record<string, string> {
   const envFile = join(root, '.env');
-  if (!existsSync(envFile)) {
-    console.error('.env が見つかりません');
-    process.exit(1);
-  }
   const out: Record<string, string> = {};
+  if (!existsSync(envFile)) return out;
   for (const line of readFileSync(envFile, 'utf8').split('\n')) {
     const m = /^([A-Z0-9_]+)=(.*)$/.exec(line.trim());
     if (m && m[1] !== undefined && m[2] !== undefined) out[m[1]] = m[2];
