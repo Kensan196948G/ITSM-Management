@@ -6,7 +6,7 @@
  *
  *   必要環境変数: CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN / D1_DATABASE_ID
  */
-import type { D1Like, D1PreparedLike, SqlRow } from '../src/db/client.ts';
+import { translateSql, type D1Like, type D1PreparedLike, type SqlRow } from '../src/db/client.ts';
 
 const CF_API = 'https://api.cloudflare.com/client/v4';
 
@@ -57,6 +57,12 @@ class HttpPrepared implements D1PreparedLike {
     const r = await this.exec();
     return { meta: r.meta ?? {} };
   }
+
+  /** 結果行を取得する（SELECT 用） */
+  async queryAll(): Promise<SqlRow[]> {
+    const r = await this.exec();
+    return r.results ?? [];
+  }
 }
 
 export class RemoteD1 implements D1Like {
@@ -75,8 +81,6 @@ export class RemoteD1 implements D1Like {
   }
 
   async batch(statements: D1PreparedLike[]): Promise<{ results: SqlRow[]; meta?: { changes?: number } }[]> {
-    // D1 HTTP API はバッチ配列を直接受け付けないため逐次実行する（非トランザクション）。
-    // トランザクションが必要な箇所は現状コードベースに存在しない。
     const out: { results: SqlRow[]; meta?: { changes?: number } }[] = [];
     for (const s of statements) {
       const r = await s.run();
@@ -85,14 +89,40 @@ export class RemoteD1 implements D1Like {
     return out;
   }
 
+  /**
+   * 複数ステートメントを 1 リクエストで実行する（D1 HTTP API の batch 形式）。
+   *
+   * 注意: D1 の `/query` エンドポイントは `{ sql, params }`（単文）と
+   * `{ batch: [{ sql, params }, ...] }`（複文）の両方を受け付ける。
+   * 単文形式をループで呼ぶとラウンドトリップが文数分だけ発生するため、
+   * 読み取りをまとめる用途では batch 形式を使う。
+   */
   async exec(sql: string, params: unknown[] = []): Promise<QueryResultShape> {
+    const results = await this.execBatch([{ sql, params }]);
+    return results[0] ?? { results: [] };
+  }
+
+  /** 複数の SELECT を batch 形式で実行し、文ごとの結果行を返す */
+  async queryMany(statements: { sql: string; params?: unknown[] }[]): Promise<SqlRow[][]> {
+    const mapped = statements.map((s) => ({ sql: translateSql(s.sql), params: s.params }));
+    const results = await this.execBatch(mapped);
+    return results.map((r) => r.results ?? []);
+  }
+
+  /** batch 形式でまとめて実行し、文ごとの結果を返す */
+  async execBatch(statements: { sql: string; params?: unknown[] }[]): Promise<QueryResultShape[]> {
     const res = await fetch(`${CF_API}/accounts/${this.accountId}/d1/database/${this.databaseId}/query`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.apiToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ sql, params: params.map((p) => (typeof p === 'boolean' ? (p ? 1 : 0) : p)) }),
+      body: JSON.stringify({
+        batch: statements.map((s) => ({
+          sql: s.sql,
+          params: (s.params ?? []).map((p) => (typeof p === 'boolean' ? (p ? 1 : 0) : p)),
+        })),
+      }),
     });
     const text = await res.text();
     let json: any = null;
@@ -103,9 +133,9 @@ export class RemoteD1 implements D1Like {
     }
     if (!res.ok || !json?.success) {
       const msg = json?.errors?.[0]?.message ?? `D1 query error (${res.status})`;
-      throw new D1HttpError(res.status, `${msg}: ${sql.slice(0, 200)}`);
+      throw new D1HttpError(res.status, `${msg}: ${statements.map((s) => s.sql.slice(0, 80)).join(' | ')}`);
     }
-    return json.result?.[0] ?? { results: [] };
+    return (json.result ?? []) as QueryResultShape[];
   }
 }
 

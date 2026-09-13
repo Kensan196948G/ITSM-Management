@@ -27,11 +27,21 @@ export interface D1PreparedLike {
   all(): Promise<{ results: SqlRow[]; meta?: { changes?: number } }>;
   first(): Promise<SqlRow | null>;
   run(): Promise<{ meta?: { changes?: number } }>;
+  /**
+   * 結果行を取得する（SELECT 用）。`run()` は書き込み系を想定しており行を返さないため、
+   * 読み取りをバッチ実行する場合はこちらを使う。
+   */
+  queryAll(): Promise<SqlRow[]>;
 }
 
 export interface D1Like {
   prepare(sql: string): D1PreparedLike;
   batch(statements: D1PreparedLike[]): Promise<{ results: SqlRow[]; meta?: { changes?: number } }[]>;
+  /**
+   * 複数の SELECT をまとめて実行し、文ごとの結果行を返す（任意実装）。
+   * リモートアダプタは D1 の batch 形式で 1 リクエストに集約する。
+   */
+  queryMany?(statements: { sql: string; params?: unknown[] }[]): Promise<SqlRow[][]>;
 }
 
 /** SQLite で JSON 文字列として保存する列（読み出し時に JSON.parse する） */
@@ -124,5 +134,43 @@ export class D1Client {
         command: '',
       };
     });
+  }
+
+  /**
+   * 複数の SELECT を 1 ラウンドトリップでまとめて実行する。
+   *
+   * Cloudflare D1 の SQLite は `SQLITE_MAX_COMPOUND_SELECT` が **5** に設定されている
+   * （実測: 5 項の UNION ALL は成功、6 項で "too many terms in compound SELECT"）。
+   * ローカルの node:sqlite は 500 のため、複数テーブルの件数を UNION ALL で
+   * まとめると「ローカルでは通るが本番だけ 500 になる」という環境差が生じる。
+   *
+   * D1 の batch は SELECT も受け付けるため、集計は UNION ALL ではなく
+   * このメソッドで 1 リクエストにまとめる（実行回数は同じ 1 回）。
+   *
+   * @returns 文ごとの結果行。**呼び出し側は文と結果の順序で対応付ける**ため、
+   *          フラット化せず 1 文 = 1 要素の配列で返す。
+   */
+  async queryMany(statements: { sql: string; params?: unknown[] }[]): Promise<SqlResult[]> {
+    // 注意: db.batch() は書き込み系を想定しており結果行を返さない実装があるため、
+    // 読み取りには queryMany() を使う（アダプタ側で 1 リクエストにまとめる）。
+    let results: SqlRow[][];
+    if (typeof this.db.queryMany === 'function') {
+      results = await this.db.queryMany(statements);
+    } else {
+      results = [];
+      for (const s of statements) {
+        results.push(await this.db.prepare(translateSql(s.sql)).bind(...(s.params ?? []).map(normalizeParam)).queryAll());
+      }
+    }
+    if (results.length !== statements.length) {
+      throw new Error(
+        `queryMany: 文数と結果数が一致しません (statements=${statements.length}, results=${results.length})`,
+      );
+    }
+    return results.map((rows) => ({
+      rows: rows.map(normalizeRow),
+      rowCount: rows.length,
+      command: '',
+    }));
   }
 }
