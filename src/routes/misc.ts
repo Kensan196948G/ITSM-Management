@@ -31,6 +31,14 @@ userRoutes.post('/', async (c) => {
   const allowedRoles = ['viewer', 'operator', 'manager', 'admin'];
   if (!allowedRoles.includes(role)) throw Errors.badRequest('ロールが不正です');
   const passwordHash = await hashPassword(password);
+  // 事前に一意制約を確認する。
+  // （DB エラーメッセージの文字列一致に依存すると、SQLite/D1 の
+  //   "UNIQUE constraint failed: ..." を検出できず 500 になるため）
+  const dup = await db.queryOne<{ id: string }>(
+    'SELECT id FROM users WHERE username = $1 OR email = $2',
+    [username, email],
+  );
+  if (dup) throw Errors.conflict('ユーザー名またはメールアドレスが既に使用されています');
   try {
     const row = await db.queryOne<UserRow>(
       `INSERT INTO users (username, display_name, email, password_hash, role, department)
@@ -38,8 +46,12 @@ userRoutes.post('/', async (c) => {
       [username, display_name, email, passwordHash, role, department ?? null],
     );
     return c.json(row, 201);
-  } catch (e: any) {
-    if (String(e?.message ?? '').includes('duplicate')) throw Errors.conflict('ユーザー名またはメールアドレスが既に使用されています');
+  } catch (e: unknown) {
+    // 競合で事前チェックをすり抜けた場合の保険（DB 制約違反を 409 へ変換）
+    const msg = String((e as { message?: unknown })?.message ?? '');
+    if (msg.includes('UNIQUE constraint failed') || msg.toLowerCase().includes('duplicate')) {
+      throw Errors.conflict('ユーザー名またはメールアドレスが既に使用されています');
+    }
     throw e;
   }
 });
@@ -67,7 +79,10 @@ userRoutes.put('/:id', async (c) => {
     sets.push(`role = $${params.length}`);
   }
   if (body.is_active !== undefined) {
-    params.push(body.is_active ? true : false);
+    // 文字列 "false" が truthy になるのを防ぐため、真偽値を厳密に解釈する
+    const raw = body.is_active;
+    const active = raw === true || raw === 1 || raw === '1' || raw === 'true';
+    params.push(active ? true : false);
     sets.push(`is_active = $${params.length}`);
   }
   if (body.password) {

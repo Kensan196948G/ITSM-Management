@@ -21,6 +21,14 @@ jobs:
         run: npm run typecheck
       - name: Unit tests
         run: npm run test:unit
+      - name: Migration & Seed validation (空の検証DBで再現)
+        # deploy ジョブは `node scripts/migrate.ts` を実行する。
+        # 同一コマンドをここで事前検証しないと、TS ローダ差異等の
+        # deploy 専用の失敗がマージ後に初めて判明する（過去に実際に発生）。
+        run: |
+          rm -f local-d1.sqlite
+          node scripts/migrate.ts --local
+          node scripts/seed.ts --local
       - name: Frontend build
         run: npm run build:web
       - name: Worker build
@@ -45,10 +53,16 @@ jobs:
       - name: E2E tests (dev-server + ローカル D1)
         run: |
           PORT=8793 SEED_ON_START=true node --import tsx src/dev-server.ts > /tmp/devserver.log 2>&1 &
+          ready=0
           for i in $(seq 1 30); do
-            curl -sf http://127.0.0.1:8793/api/health > /dev/null && break
+            if curl -sf http://127.0.0.1:8793/api/health > /dev/null; then ready=1; break; fi
             sleep 1
           done
+          if [ "$ready" != "1" ]; then
+            echo "::error::dev-server が 30 秒以内に起動しませんでした"
+            cat /tmp/devserver.log
+            exit 1
+          fi
           npm run test:e2e
 
   integration:
@@ -67,7 +81,9 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    needs: integration
+    # e2e を必須にする。UI 回帰を検出する唯一のジョブであり、
+    # これを含めないと E2E 失敗中でも本番デプロイが完了してしまう。
+    needs: [integration, e2e]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4

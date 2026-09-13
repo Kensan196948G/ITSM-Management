@@ -14,3 +14,7 @@ test-results/
 .scratch/
 .dev.vars
 .wrangler/
+local-d1.sqlite
+local-d1.sqlite-journal
+local-d1.sqlite-wal
+local-d1.sqlite-shm

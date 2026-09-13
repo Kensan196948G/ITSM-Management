@@ -190,9 +190,22 @@ export function createCrudRouter(cfg: CrudConfig): Hono<AppEnv> {
       changed[f.column] = value ?? null;
     }
     if (sets.length === 0) {
-      // 更新フィールドなし
+      // 更新フィールドなし: updated_at のみ更新するが、監査ログは必ず記録する
+      // （docs/06-セキュリティ設計書.md §4.1「update は before + after を記録」に準拠。
+      //   早期 return で writeAudit を迂回すると、
+      //   「updated_at は更新されたのに監査ログが無い」状態が発生する）
       await db.query(`UPDATE ${cfg.table} SET updated_at = now() WHERE id = $1`, [id]);
-      return c.json(await db.queryOne(`SELECT * FROM ${cfg.table} WHERE id = $1`, [id]));
+      const unchanged = await db.queryOne(`SELECT * FROM ${cfg.table} WHERE id = $1`, [id]);
+      await writeAudit(db, {
+        entityType: cfg.entity,
+        entityId: id,
+        action: 'update',
+        before: existing,
+        after: unchanged,
+        userId: user.id,
+        ip: c.req.header('cf-connecting-ip'),
+      });
+      return c.json(unchanged);
     }
 
     await db.query(`UPDATE ${cfg.table} SET ${sets.join(', ')}, updated_at = now() WHERE id = $1`, params);
