@@ -146,16 +146,20 @@ dashboardRoutes.get('/site-status', async (c) => {
 /** SLAリスク一覧（期限超過 + リスク） */
 dashboardRoutes.get('/sla-risks', async (c) => {
   const db = c.get('db');
+  // 閾値判定を SQL へ押し下げる。
+  // 以前は ORDER BY due_at LIMIT 100 で取得してから JS でフィルタしていたため、
+  // 「直近 100 件の中のリスク」しか返せず、101 件目以降の期限超過チケットが
+  // リスク一覧から漏れていた（リスク一覧としては誤り）。
+  // due_at は ISO-8601(UTC) の TEXT なので文字列比較で正しく比較できる。
+  const threshold = new Date(Date.now() + SLA_RISK_THRESHOLD_HOURS * 3600 * 1000).toISOString();
   const res = await db.query(
-    `SELECT * FROM incidents WHERE status NOT IN ('resolved','closed') AND due_at IS NOT NULL
-     ORDER BY due_at ASC LIMIT 100`,
+    `SELECT * FROM incidents
+     WHERE status NOT IN ('resolved','closed')
+       AND due_at IS NOT NULL
+       AND due_at < $1
+     ORDER BY due_at ASC
+     LIMIT 100`,
+    [threshold],
   );
-  const now = Date.now();
-  const thresholdMs = SLA_RISK_THRESHOLD_HOURS * 3600 * 1000;
-  const items = res.rows.filter((r: any) => {
-    const due = new Date(r.due_at).getTime();
-    const remaining = due - now;
-    return remaining < thresholdMs; // risk（閾値以内）または超過
-  });
-  return c.json(items);
+  return c.json(res.rows);
 });

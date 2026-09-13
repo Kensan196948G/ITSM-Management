@@ -2,7 +2,6 @@
  * 定数・設定（ITSM Management / Service Desk）
  */
 export const APP_NAME = 'itsm-management';
-export const APP_DISPLAY_NAME = 'ITSM Management / Service Desk';
 
 /** RBAC ロール順位（viewer < operator < manager < admin） */
 export const ROLE_RANK: Record<string, number> = {
@@ -83,16 +82,3 @@ export const SESSION_TTL_HOURS = 12;
 /** 一覧のデフォルトページサイズ */
 export const DEFAULT_PAGE_SIZE = 10;
 export const MAX_PAGE_SIZE = 100;
-
-/** 監査対象モジュール（チケット採番プレフィックス） */
-export const TICKET_PREFIX: Record<string, string> = {
-  incidents: 'INC',
-  problems: 'PRB',
-  changes: 'CHG',
-  cmdb_items: 'CI',
-  knowledge_articles: 'KA',
-  assets: 'AST',
-  patches: 'PTH',
-  security_events: 'SEC',
-  service_requests: 'REQ',
-};

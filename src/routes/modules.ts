@@ -3,8 +3,6 @@
  * 各モジュール: incidents / problems / changes / cmdb / knowledge / assets / patches / security / requests
  */
 import { createCrudRouter } from './crud.ts';
-import { calcSlaStatus } from '../utils.ts';
-import type { IncidentRow } from '../types.ts';
 
 const INCIDENT_PRIORITIES = ['critical', 'high', 'medium', 'low'];
 const INCIDENT_STATUSES = ['open', 'in_progress', 'waiting', 'resolved', 'closed'];
@@ -204,16 +202,3 @@ export const requestRoutes = createCrudRouter({
     { column: 'description' },
   ],
 });
-
-/**
- * インシデント一覧のSLA状態を付与するヘルパー
- * （ルーター登録後に app.ts で使用）
- */
-export async function enrichIncidentsWithSla(
-  rows: IncidentRow[],
-): Promise<(IncidentRow & { sla_status: string })[]> {
-  return rows.map((r) => ({
-    ...r,
-    sla_status: calcSlaStatus(r.due_at, r.resolved_at),
-  }));
-}

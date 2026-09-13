@@ -59,7 +59,3 @@ export async function hashToken(token: string): Promise<string> {
   const bits = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
   return bufToHex(bits);
 }
-
-export function generateRandomHex(bytes = 32): string {
-  return bufToHex(crypto.getRandomValues(new Uint8Array(bytes)).buffer);
-}
