@@ -105,6 +105,9 @@ userRoutes.put('/:id', async (c) => {
 /** ── 監査ログ（admin / manager） ── */
 export const auditRoutes = new Hono<AppEnv>();
 
+/** 監査ログの action 許容値（migrations/001_initial.sql の CHECK 制約と一致） */
+const AUDIT_ACTIONS = ['create', 'update', 'delete', 'login', 'logout'];
+
 auditRoutes.get('/', async (c) => {
   const user = c.get('user');
   if (!user) throw Errors.unauthorized();
@@ -114,19 +117,38 @@ auditRoutes.get('/', async (c) => {
   const { skip, size } = parseListParams(url);
   const entityType = url.searchParams.get('entity_type');
   const entityId = url.searchParams.get('entity_id');
+  // docs/04-API設計書.md §3.7 が定めるクエリパラメータ
+  // （entity_type / entity_id / action / user_id）を実装する。
+  const action = url.searchParams.get('action');
+  const userId = url.searchParams.get('user_id');
+  if (action && !AUDIT_ACTIONS.includes(action)) {
+    throw Errors.badRequest(`action の値が不正です: ${action}`);
+  }
 
   const conds: string[] = [];
   const params: unknown[] = [];
+  // JOIN 先と列名が衝突しないよう、明示的に a. を付与する
   if (entityType) {
     params.push(entityType);
-    conds.push(`entity_type = $${params.length}`);
+    conds.push(`a.entity_type = $${params.length}`);
   }
   if (entityId) {
     params.push(entityId);
-    conds.push(`entity_id = $${params.length}`);
+    conds.push(`a.entity_id = $${params.length}`);
+  }
+  if (action) {
+    params.push(action);
+    conds.push(`a.action = $${params.length}`);
+  }
+  if (userId) {
+    params.push(userId);
+    conds.push(`a.user_id = $${params.length}`);
   }
   const whereSql = conds.length > 0 ? ` WHERE ${conds.join(' AND ')}` : '';
-  const countRes = await db.queryOne<{ total: string }>(`SELECT COUNT(*) AS total FROM audit_logs${whereSql}`, params);
+  const countRes = await db.queryOne<{ total: string }>(
+    `SELECT COUNT(*) AS total FROM audit_logs a${whereSql}`,
+    params,
+  );
   const items = await db.query(
     `SELECT a.*, u.display_name AS user_name FROM audit_logs a LEFT JOIN users u ON u.id = a.user_id${whereSql}
      ORDER BY a.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
