@@ -19,6 +19,17 @@ export interface CrudField {
   allowed?: string[];
 }
 
+/**
+ * 入力値の正規化。
+ * 文字列は前後の空白を除去し（'   ' を空文字＝未入力として扱う）、
+ * 空文字は undefined へ寄せる（任意項目を NULL として保存するため）。
+ */
+function normalizeText(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  return trimmed === '' ? undefined : trimmed;
+}
+
 export interface CrudConfig {
   /** DBテーブル名 */
   table: string;
@@ -116,7 +127,11 @@ export function createCrudRouter(cfg: CrudConfig): Hono<AppEnv> {
 
     for (const f of cfg.fields) {
       const key = f.key ?? f.column;
-      const value: unknown = (body as Record<string, unknown>)[key];
+      const raw: unknown = (body as Record<string, unknown>)[key];
+      const value = normalizeText(raw);
+      // 空文字・空白のみは「未入力」として扱う。
+      // 以前は '' のみを未入力としていたため、'   ' が必須チェックを通過し、
+      // タイトルが空白だけのチケットが登録できてしまっていた。
       if (value === undefined || value === null || value === '') {
         if (f.required) throw Errors.badRequest(`${key}は必須です`);
         continue;
@@ -181,7 +196,12 @@ export function createCrudRouter(cfg: CrudConfig): Hono<AppEnv> {
     for (const f of allFields) {
       const key = f.key ?? f.column;
       if (!(key in (body as Record<string, unknown>))) continue;
-      const value: unknown = (body as Record<string, unknown>)[key];
+      const value = normalizeText((body as Record<string, unknown>)[key]);
+      // 必須項目を空文字・空白のみへ更新することを禁止する
+      // （作成時と同様、'   ' が必須チェックをすり抜けてしまうため）
+      if (f.required && (value === undefined || value === null || value === '')) {
+        throw Errors.badRequest(`${key}は必須です`);
+      }
       if (f.allowed && value !== null && value !== undefined && !f.allowed.includes(String(value))) {
         throw Errors.badRequest(`${key}の値が不正です: ${String(value)}`);
       }

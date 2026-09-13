@@ -30,7 +30,12 @@ userRoutes.post('/', async (c) => {
   const body = await c.req.json().catch(() => null);
   if (!body) throw Errors.badRequest();
   const { username, display_name, email, password, role = 'viewer', department } = body as Record<string, string>;
-  if (!username || !display_name || !email || !password) throw Errors.badRequest('必須項目が不足しています');
+  // 前後の空白を除去し、空白のみは未入力として扱う
+  // （以前は '   ' が必須チェックを通過して空白だけのユーザーが作成できた）
+  const uname = typeof username === 'string' ? username.trim() : '';
+  const dname = typeof display_name === 'string' ? display_name.trim() : '';
+  const mail = typeof email === 'string' ? email.trim() : '';
+  if (!uname || !dname || !mail || !password) throw Errors.badRequest('必須項目が不足しています');
   const allowedRoles = ['viewer', 'operator', 'manager', 'admin'];
   if (!allowedRoles.includes(role)) throw Errors.badRequest('ロールが不正です');
   const passwordHash = await hashPassword(password);
@@ -39,14 +44,14 @@ userRoutes.post('/', async (c) => {
   //   "UNIQUE constraint failed: ..." を検出できず 500 になるため）
   const dup = await db.queryOne<{ id: string }>(
     'SELECT id FROM users WHERE username = $1 OR email = $2',
-    [username, email],
+    [uname, mail],
   );
   if (dup) throw Errors.conflict('ユーザー名またはメールアドレスが既に使用されています');
   try {
     const row = await db.queryOne<UserRow>(
       `INSERT INTO users (username, display_name, email, password_hash, role, department)
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, username, display_name, email, role, department, is_active, created_at`,
-      [username, display_name, email, passwordHash, role, department ?? null],
+      [uname, dname, mail, passwordHash, role, department ?? null],
     );
     return c.json(row, 201);
   } catch (e: unknown) {
@@ -72,7 +77,9 @@ userRoutes.put('/:id', async (c) => {
   const allowedRoles = ['viewer', 'operator', 'manager', 'admin'];
   for (const key of ['display_name', 'department']) {
     if (body[key] !== undefined) {
-      params.push(body[key]);
+      const v = typeof body[key] === 'string' ? body[key].trim() : body[key];
+      if (key === 'display_name' && !v) throw Errors.badRequest('display_nameは必須です');
+      params.push(v === '' ? null : v);
       sets.push(`${key} = $${params.length}`);
     }
   }
