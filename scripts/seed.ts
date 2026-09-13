@@ -9,11 +9,15 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runSeed } from './seed-core.ts';
+import { applyMigrations } from './migrate-core.ts';
 import { LocalD1 } from '../src/db/local-d1.ts';
 import { createRemoteD1FromEnv } from './lib-d1-http.ts';
 import type { D1Like } from '../src/db/client.ts';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+/** ローカル検証 DB の既定パス（migrate.ts と同一。--db で変更可能） */
+const DEFAULT_LOCAL_DB = join(root, 'local-d1.sqlite');
 
 function loadEnv(): Record<string, string> {
   const envFile = join(root, '.env');
@@ -29,14 +33,28 @@ function loadEnv(): Record<string, string> {
   return out;
 }
 
+/** --db <path> もしくは --db=<path> を取得する */
+function parseDbArg(argv: string[]): string | undefined {
+  const eq = argv.find((a) => a.startsWith('--db='));
+  if (eq) return eq.slice('--db='.length);
+  const idx = argv.indexOf('--db');
+  if (idx >= 0 && argv[idx + 1]) return argv[idx + 1];
+  return undefined;
+}
+
 async function main() {
   const env = loadEnv();
   const useLocal = process.argv.includes('--local');
 
   let db: D1Like;
   if (useLocal) {
-    db = new LocalD1();
-    console.log('対象: ローカル D1（node:sqlite, in-memory）');
+    // migrate と同じファイルベース DB を使い、スキーマ未適用なら先に適用する。
+    // これにより `npm run db:seed -- --local` 単体でも再現可能になる。
+    const dbPath = parseDbArg(process.argv) ?? DEFAULT_LOCAL_DB;
+    const local = new LocalD1(dbPath);
+    console.log(`対象: ローカル D1（node:sqlite, file=${dbPath}）`);
+    await applyMigrations(local);
+    db = local;
   } else {
     db = createRemoteD1FromEnv(env);
     console.log(`対象: 本番 D1（${env.D1_DATABASE_ID ?? ''}）`);
