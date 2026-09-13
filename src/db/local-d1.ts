@@ -38,11 +38,6 @@ class LocalPrepared implements D1PreparedLike {
     const info = this.stmt.run(...this.values) as { changes: number | bigint };
     return { meta: { changes: Number(info.changes) } };
   }
-
-  /** 結果行を取得する（SELECT 用。run() は書き込み系で行を返さない） */
-  async queryAll(): Promise<SqlRow[]> {
-    return this.stmt.all(...this.values) as unknown as SqlRow[];
-  }
 }
 
 export class LocalD1 implements D1Like {
@@ -87,7 +82,8 @@ export class LocalD1 implements D1Like {
   async queryMany(statements: { sql: string; params?: unknown[] }[]): Promise<SqlRow[][]> {
     const out: SqlRow[][] = [];
     for (const s of statements) {
-      out.push(await this.prepare(s.sql).bind(...(s.params ?? [])).queryAll());
+      const rows = this.db.prepare(s.sql).all(...(s.params ?? []) as never[]) as unknown as SqlRow[];
+      out.push(rows);
     }
     return out;
   }
