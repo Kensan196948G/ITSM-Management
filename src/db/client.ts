@@ -21,27 +21,90 @@ export interface SqlResult {
   command: string;
 }
 
-/** D1 互換の最小インターフェース（実物の D1Database も構造的に合致する） */
+/**
+ * D1Client が要求する prepared statement のインターフェース。
+ *
+ * Cloudflare のネイティブ `D1PreparedStatement` は `all()/first()/run()` を持ち、
+ * SQLite 系アダプタは同じ 3 つを提供する。読み取りの一括実行は
+ * アダプタ側の `queryMany()` が担うため、ここでは `queryAll()` を要求しない。
+ */
 export interface D1PreparedLike {
   bind(...values: unknown[]): D1PreparedLike;
   all(): Promise<{ results: SqlRow[]; meta?: { changes?: number } }>;
   first(): Promise<SqlRow | null>;
   run(): Promise<{ meta?: { changes?: number } }>;
-  /**
-   * 結果行を取得する（SELECT 用）。`run()` は書き込み系を想定しており行を返さないため、
-   * 読み取りをバッチ実行する場合はこちらを使う。
-   */
-  queryAll(): Promise<SqlRow[]>;
 }
 
 export interface D1Like {
   prepare(sql: string): D1PreparedLike;
   batch(statements: D1PreparedLike[]): Promise<{ results: SqlRow[]; meta?: { changes?: number } }[]>;
   /**
-   * 複数の SELECT をまとめて実行し、文ごとの結果行を返す（任意実装）。
-   * リモートアダプタは D1 の batch 形式で 1 リクエストに集約する。
+   * 複数の SELECT をまとめて実行し、文ごとの結果行を返す。
+   * ネイティブ D1 バインディングは batch() に SELECT を並べて 1 リクエストに集約する。
    */
-  queryMany?(statements: { sql: string; params?: unknown[] }[]): Promise<SqlRow[][]>;
+  queryMany(statements: { sql: string; params?: unknown[] }[]): Promise<SqlRow[][]>;
+}
+
+/**
+ * Cloudflare Workers のネイティブ D1Database バインディング用アダプタ。
+ *
+ * 実物の D1PreparedStatement は `run()` を持つが `queryAll()` を持たないため、
+ * D1Client が要求する `D1PreparedLike` をそのまま満たせない。
+ * ここで薄く包み、SELECT の一括実行は batch() に委ねる。
+ */
+export class D1BindingAdapter implements D1Like {
+  private db: D1Database;
+
+  constructor(db: D1Database) {
+    this.db = db;
+  }
+
+  prepare(sql: string): D1PreparedLike {
+    const stmt = this.db.prepare(sql);
+    return {
+      bind: (...values: unknown[]) => this.wrap(stmt.bind(...(values as never[]))),
+      all: async () => {
+        const r = await stmt.all();
+        return { results: (r.results ?? []) as SqlRow[], meta: r.meta as { changes?: number } | undefined };
+      },
+      first: async () => (await stmt.first()) as SqlRow | null,
+      run: async () => {
+        const r = await stmt.run();
+        return { meta: r.meta as { changes?: number } | undefined };
+      },
+    };
+  }
+
+  private wrap(stmt: D1PreparedStatement): D1PreparedLike {
+    return {
+      bind: (...values: unknown[]) => this.wrap(stmt.bind(...(values as never[]))),
+      all: async () => {
+        const r = await stmt.all();
+        return { results: (r.results ?? []) as SqlRow[], meta: r.meta as { changes?: number } | undefined };
+      },
+      first: async () => (await stmt.first()) as SqlRow | null,
+      run: async () => {
+        const r = await stmt.run();
+        return { meta: r.meta as { changes?: number } | undefined };
+      },
+    };
+  }
+
+  async batch(statements: D1PreparedLike[]): Promise<{ results: SqlRow[]; meta?: { changes?: number } }[]> {
+    void statements;
+    throw new Error('D1BindingAdapter.batch() は未対応です（書き込みのバッチは未使用）');
+  }
+
+  /** 複数 SELECT を D1 の batch で 1 リクエスト実行する */
+  async queryMany(statements: { sql: string; params?: unknown[] }[]): Promise<SqlRow[][]> {
+    const prepared = statements.map((s) =>
+      this.db
+        .prepare(translateSql(s.sql))
+        .bind(...((s.params ?? []).map(normalizeParam) as never[])),
+    );
+    const results = await this.db.batch(prepared);
+    return results.map((r) => (r.results ?? []) as SqlRow[]);
+  }
 }
 
 /** SQLite で JSON 文字列として保存する列（読み出し時に JSON.parse する） */
@@ -98,7 +161,10 @@ export class D1Client {
   private db: D1Like;
 
   constructor(db: D1Database | D1Like) {
-    this.db = db as D1Like;
+    // Cloudflare のネイティブ D1Database バインディングは queryMany() を持たない。
+    // そのまま D1Like として扱うと読み取りの一括実行で失敗するため、ここで包む。
+    const candidate = db as Partial<D1Like>;
+    this.db = typeof candidate.queryMany === 'function' ? (db as D1Like) : new D1BindingAdapter(db as D1Database);
   }
 
   /** 単一クエリ実行。params は $1, $2... にバインド（自動で ?1, ?2... に変換） */
@@ -151,17 +217,9 @@ export class D1Client {
    *          フラット化せず 1 文 = 1 要素の配列で返す。
    */
   async queryMany(statements: { sql: string; params?: unknown[] }[]): Promise<SqlResult[]> {
-    // 注意: db.batch() は書き込み系を想定しており結果行を返さない実装があるため、
-    // 読み取りには queryMany() を使う（アダプタ側で 1 リクエストにまとめる）。
-    let results: SqlRow[][];
-    if (typeof this.db.queryMany === 'function') {
-      results = await this.db.queryMany(statements);
-    } else {
-      results = [];
-      for (const s of statements) {
-        results.push(await this.db.prepare(translateSql(s.sql)).bind(...(s.params ?? []).map(normalizeParam)).queryAll());
-      }
-    }
+    // 読み取りは queryMany() を使う（アダプタ側で 1 リクエストにまとめる）。
+    // db.batch() は書き込み系を想定しており結果行を返さない実装があるため使わない。
+    const results = await this.db.queryMany(statements);
     if (results.length !== statements.length) {
       throw new Error(
         `queryMany: 文数と結果数が一致しません (statements=${statements.length}, results=${results.length})`,
