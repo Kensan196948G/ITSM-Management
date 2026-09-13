@@ -1,7 +1,7 @@
 /** 汎用モジュールビュー（一覧・検索・フィルタ・CRUD・詳細） */
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { api, buildQuery, type ListResult } from '../api';
-import { DataTable, Pagination, Modal, ConfirmDialog, Field, type Column } from '../components/ui.tsx';
+import { DataTable, Pagination, Modal, ConfirmDialog, Field, Toast, type Column } from '../components/ui.tsx';
 import { PRIORITY_LABEL, fmtDate, toDateTimeLocal, fromDateTimeLocal } from '../types.ts';
 import { useAuth } from '../auth.tsx';
 
@@ -80,9 +80,13 @@ export function ModuleView<T extends { id: string }>({ cfg }: { cfg: ModuleConfi
   };
 
   const handleSave = async () => {
-    // 必須チェック
+    // 必須チェック（空白のみは未入力として扱う。
+    // 以前は truthy 判定のみで '   ' が通過し、タイトルが空白だけの
+    // チケットが登録できてしまっていた）
     for (const f of cfg.fields) {
-      if (f.required && !formData[f.key]) {
+      const v = formData[f.key];
+      const isBlank = v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
+      if (f.required && isBlank) {
         setFormError(`${f.label}は必須です`);
         return;
       }
@@ -242,12 +246,8 @@ export function ModuleView<T extends { id: string }>({ cfg }: { cfg: ModuleConfi
         )}
       </Modal>
 
-      {/* トースト */}
-      <div className="toast-wrap" aria-live="polite">
-        {toasts.map((t) => (
-          <div key={t.id} className={`toast ${t.type === 'success' ? 'toast--success' : t.type === 'error' ? 'toast--error' : ''}`}>{t.msg}</div>
-        ))}
-      </div>
+      {/* トースト（エラーは role="alert"、成功は role="status" で通知される） */}
+      <Toast toasts={toasts} />
     </div>
   );
 }

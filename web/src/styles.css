@@ -251,6 +251,24 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .toast--error { border-left-color: var(--danger); }
 @keyframes toastIn { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
 
+/* ── Accessibility ── */
+/* スクリーンリーダー専用テキスト（視覚的には非表示） */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+/* 行クリック可能なテーブル行のキーボードフォーカス表示 */
+.tbl tbody tr[tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+/* モーダル本体は programmatic focus の受け皿（枠線は出さない） */
+.modal:focus { outline: none; }
+
 /* ── misc ── */
 .section-gap { margin-bottom: 16px; }
 .demo-note { font-size: 11px; color: var(--muted-2); }

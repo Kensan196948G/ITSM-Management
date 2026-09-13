@@ -1,5 +1,5 @@
 /** UI 共通コンポーネント */
-import { useEffect, type ReactNode, type CSSProperties } from 'react';
+import { useEffect, useId, useRef, isValidElement, cloneElement, type ReactNode, type CSSProperties } from 'react';
 import { STATUS_LABEL, PRIORITY_LABEL, TONE } from '../types';
 
 /* ── Pill（ステータス/優先度バッジ） ── */
@@ -24,6 +24,14 @@ export function KPI({ icon, label, value, sub, tone = 'info' }: { icon: string; 
 }
 
 /* ── モーダル ── */
+/**
+ * アクセシブルなモーダル。
+ *   - 開いたときにフォーカスをモーダル内へ移す
+ *   - Tab / Shift+Tab をモーダル内に閉じ込める（フォーカストラップ）
+ *   - Esc で閉じる
+ *   - 閉じたときに元の要素へフォーカスを戻す
+ * これらが無いと、キーボード利用者が背後の画面へ抜けてしまい操作を見失う。
+ */
 export function Modal({ open, onClose, title, children, footer, width = 640 }: {
   open: boolean;
   onClose: () => void;
@@ -32,17 +40,60 @@ export function Modal({ open, onClose, title, children, footer, width = 640 }: {
   footer?: ReactNode;
   width?: number;
 }) {
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const restoreRef = useRef<HTMLElement | null>(null);
+
   useEffect(() => {
     if (!open) return;
-    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', h);
-    return () => document.removeEventListener('keydown', h);
+    // 開く前のフォーカス位置を記憶し、モーダルへ移す
+    restoreRef.current = document.activeElement as HTMLElement | null;
+    const focusables = () =>
+      Array.from(
+        dialogRef.current?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      ).filter((el) => el.offsetParent !== null || el === dialogRef.current);
+
+    const first = focusables()[0];
+    (first ?? dialogRef.current)?.focus();
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const list = focusables();
+      if (list.length === 0) {
+        e.preventDefault();
+        return;
+      }
+      const firstEl = list[0]!;
+      const lastEl = list[list.length - 1]!;
+      const active = document.activeElement;
+      if (e.shiftKey && (active === firstEl || active === dialogRef.current)) {
+        e.preventDefault();
+        lastEl.focus();
+      } else if (!e.shiftKey && active === lastEl) {
+        e.preventDefault();
+        firstEl.focus();
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      // 閉じたら元の要素へフォーカスを戻す
+      restoreRef.current?.focus?.();
+    };
   }, [open, onClose]);
+
   if (!open) return null;
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true" aria-label={title}
+    <div className="modal-overlay"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal" style={{ width: `min(${width}px, 100%)` }}>
+      <div className="modal" role="dialog" aria-modal="true" aria-label={title}
+        ref={dialogRef} tabIndex={-1} style={{ width: `min(${width}px, 100%)` }}>
         <div className="modal__head">
           <h3>{title}</h3>
           <button className="modal__close" onClick={onClose} aria-label="閉じる">✕</button>
@@ -95,7 +146,12 @@ export function DataTable<T extends { id: string }>({ columns, data, loading, so
   emptyMsg?: string;
 }) {
   if (loading) {
-    return <div className="card" style={{ padding: 16 }}><div className="skeleton" style={{ height: 200 }} /></div>;
+    return (
+      <div className="card" style={{ padding: 16 }} aria-busy="true" role="status">
+        <span className="sr-only">読み込み中</span>
+        <div className="skeleton" style={{ height: 200 }} />
+      </div>
+    );
   }
   if (!data.length) {
     return <div className="empty"><p>{emptyMsg}</p></div>;
@@ -118,7 +174,18 @@ export function DataTable<T extends { id: string }>({ columns, data, loading, so
           </thead>
           <tbody>
             {data.map((row) => (
-              <tr key={row.id} className={onRowClick ? 'row-click' : ''} onClick={onRowClick ? () => onRowClick(row) : undefined}>
+              <tr key={row.id}
+                className={onRowClick ? 'row-click' : ''}
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                // 行クリックはキーボードでも到達できる必要がある
+                // （tabIndex と Enter/Space が無いと、キーボード利用者は詳細を開けない）
+                tabIndex={onRowClick ? 0 : undefined}
+                onKeyDown={onRowClick ? (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onRowClick(row);
+                  }
+                } : undefined}>
                 {columns.map((col) => (
                   <td key={col.key} className={col.cls}>
                     {col.render ? col.render((row as Record<string, unknown>)[col.key], row) : String((row as Record<string, unknown>)[col.key] ?? '—')}
@@ -150,12 +217,39 @@ export function Pagination({ page, total, size, onChange }: { page: number; tota
 }
 
 /* ── フォームフィールド ── */
+/**
+ * ラベルと入力要素を関連付ける。
+ *
+ * 以前は <label> と入力が DOM 上で関連付いていなかったため、
+ *   - ラベルクリックで入力へフォーカスしない
+ *   - スクリーンリーダーが入力の名前を読み上げられない
+ * という問題があった。子要素を複製して id と aria-labelledby を付与する。
+ * （子が id を明示している場合はそれを尊重する）
+ */
 export function Field({ label, required, children, full, error }: { label: string; required?: boolean; children: ReactNode; full?: boolean; error?: string }) {
+  const autoId = useId();
+  const labelId = `${autoId}-label`;
+  const errorId = `${autoId}-err`;
+
+  let control: ReactNode = children;
+  if (isValidElement<{ id?: string; 'aria-labelledby'?: string; 'aria-describedby'?: string; 'aria-invalid'?: boolean }>(children)) {
+    const childProps = children.props;
+    control = cloneElement(children, {
+      id: childProps.id ?? autoId,
+      'aria-labelledby': childProps['aria-labelledby'] ?? labelId,
+      ...(error ? { 'aria-describedby': childProps['aria-describedby'] ?? errorId, 'aria-invalid': true } : {}),
+    });
+  }
+
   return (
     <div className={`field ${full ? 'field--full' : ''}`}>
-      <label>{label}{required && <span className="req">*</span>}</label>
-      {children}
-      {error && <span className="err">{error}</span>}
+      <label id={labelId} htmlFor={autoId}>
+        {label}
+        {required && <span className="req" aria-hidden="true">*</span>}
+        {required && <span className="sr-only">（必須）</span>}
+      </label>
+      {control}
+      {error && <span className="err" id={errorId} role="alert">{error}</span>}
     </div>
   );
 }
@@ -259,13 +353,27 @@ export function DonutChart({ data, size = 150, thickness = 18, centerLabel, cent
 }
 
 /* ── トースト ── */
+/**
+ * エラーは role="alert"（即時通知）、それ以外は role="status"（操作を妨げない通知）として
+ * スクリーンリーダーへ伝える。
+ */
 export function Toast({ toasts }: { toasts: { id: number; msg: string; type: string }[] }) {
+  if (!toasts.length) return null;
+  const errors = toasts.filter((t) => t.type === 'error');
+  const others = toasts.filter((t) => t.type !== 'error');
   return (
-    <div className="toast-wrap" aria-live="polite">
-      {toasts.map((t) => (
-        <div key={t.id} className={`toast ${t.type === 'success' ? 'toast--success' : t.type === 'error' ? 'toast--error' : ''}`}>{t.msg}</div>
-      ))}
-    </div>
+    <>
+      <div className="toast-wrap" role="alert" aria-live="assertive">
+        {errors.map((t) => (
+          <div key={t.id} className="toast toast--error">{t.msg}</div>
+        ))}
+      </div>
+      <div className="toast-wrap" role="status" aria-live="polite">
+        {others.map((t) => (
+          <div key={t.id} className={`toast ${t.type === 'success' ? 'toast--success' : ''}`}>{t.msg}</div>
+        ))}
+      </div>
+    </>
   );
 }
 
